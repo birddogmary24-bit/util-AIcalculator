@@ -1,0 +1,66 @@
+name: util_ai_calculator
+description: "AI 계산기 - 자연어 계산, 영수증 인식, 맥락 해석 기능을 갖춘 스마트 계산기"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Database (Local SQLite)
+  drift: ^2.23.1
+  sqlite3_flutter_libs: ^0.5.28
+  path_provider: ^2.1.5
+  path: any
+
+  # HTTP (Claude API)
+  http: ^1.2.2
+
+  # Secure Storage (API Key)
+  flutter_secure_storage: ^9.2.4
+
+  # Camera / Image (Mobile only)
+  image_picker: ^1.1.2
+
+  # OCR (Mobile only, kIsWeb guard applied)
+  google_mlkit_text_recognition: ^0.15.0
+
+  # Internationalization
+  intl: ^0.19.0
+
+  # Utils
+  uuid: ^4.5.1
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Drift code generation
+  drift_dev: ^2.23.1
+  build_runner: ^2.4.14
+
+  # Riverpod code generation
+  riverpod_generator: ^2.6.3
+  custom_lint: ^0.7.1
+  riverpod_lint: ^2.6.3
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
