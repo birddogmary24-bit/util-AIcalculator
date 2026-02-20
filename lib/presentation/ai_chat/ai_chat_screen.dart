@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/colors.dart';
-import '../../domain/services/claude_service.dart';
+import '../../domain/services/gemini_service.dart';
 import '../../providers/config_provider.dart';
 import '../calculator/calculator_provider.dart';
-import 'package:go_router/go_router.dart';
 
 // --- State ---
 
@@ -50,7 +49,7 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
 
   Future<void> send(String input) async {
     if (input.trim().isEmpty) return;
-    final service = _ref.read(claudeServiceProvider);
+    final service = _ref.read(geminiServiceProvider);
     if (service == null) return;
 
     final userMsg = ChatMessage(
@@ -159,6 +158,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'AI 도우미',
           style: TextStyle(fontWeight: FontWeight.w600),
@@ -219,7 +222,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => context.go('/'),
+            onPressed: () => Navigator.of(context).pop(),
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: const Text('설정하기', style: TextStyle(fontSize: 13)),
           ),
@@ -341,7 +344,7 @@ class _SendToCalcButton extends StatelessWidget {
         final num = _extractLastNumber(content);
         if (num != null) {
           ref.read(calculatorProvider.notifier).loadFromHistory(content, num);
-          context.go('/');
+          Navigator.of(context).pop();
         }
       },
       child: Container(

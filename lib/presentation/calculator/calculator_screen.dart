@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/config_provider.dart';
-import '../../providers/theme_provider.dart';
 import 'calculator_provider.dart';
 import 'widgets/display_panel.dart';
 import 'widgets/button_grid.dart';
@@ -18,21 +18,21 @@ class CalculatorScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Claude API 키 설정'),
+        title: const Text('Gemini API 키 설정'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'AI 기능(자연어 계산, 맥락 해석, 스마트 기록)을 사용하려면 Anthropic API 키가 필요합니다.',
+              'AI 기능(자연어 계산, 맥락 해석, 스마트 기록)을 사용하려면 Google Gemini API 키가 필요합니다.',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                labelText: 'sk-ant-...',
-                hintText: 'API 키를 입력하세요',
+                labelText: 'AIzaSy...',
+                hintText: 'Gemini API 키를 입력하세요',
               ),
               obscureText: true,
             ),
@@ -61,66 +61,96 @@ class CalculatorScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final calcState = ref.watch(calculatorProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.apps),
+          onPressed: () => context.push('/tools'),
+          tooltip: '도구 모음',
+        ),
+        titleSpacing: 4,
         title: const Text(
-          'AI 계산기',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          '알뜰계산기.AI',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+            fontSize: 23,
+            letterSpacing: 2.3,
+          ),
         ),
         actions: [
           IconButton(
-            icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
-            tooltip: isDark ? '라이트 모드' : '다크 모드',
+            icon: const Icon(Icons.settings, size: 24),
+            onPressed: () => context.push('/settings'),
+            tooltip: '설정',
           ),
           IconButton(
             icon: const Icon(Icons.key_outlined),
             onPressed: () => _showApiKeyDialog(context, ref),
             tooltip: 'API 키 설정',
           ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              icon: const Icon(Icons.history, size: 28),
+              onPressed: () => context.push('/history'),
+              tooltip: '기록',
+            ),
+          ),
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            children: [
-              // Display panel
-              DisplayPanel(
-                display: calcState.display,
-                expression: calcState.expression,
-                isAiLoading: calcState.isAiLoading,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Display area — expands to fill remaining space
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: DisplayPanel(
+                        display: calcState.display,
+                        expression: calcState.expression,
+                        isAiLoading: calcState.isAiLoading,
+                        displayHistory: calcState.displayHistory,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // AI Tip Card (animated)
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: calcState.showTip && calcState.contextTip != null
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: AiTipCard(
+                                tip: calcState.contextTip!,
+                                onDismiss: () =>
+                                    ref.read(calculatorProvider.notifier).dismissTip(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
+            ),
 
-              // AI Tip Card (animated)
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: calcState.showTip && calcState.contextTip != null
-                    ? Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: AiTipCard(
-                          tip: calcState.contextTip!,
-                          onDismiss: () =>
-                              ref.read(calculatorProvider.notifier).dismissTip(),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
+            // Button grid
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: ButtonGrid(),
+            ),
 
-              // Natural language input bar
-              NaturalLangBar(),
-              const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
-              // Calculator button grid
-              Expanded(
-                child: const ButtonGrid(),
-              ),
-            ],
-          ),
+            // Natural language input bar
+            const NaturalLangBar(),
+          ],
         ),
       ),
     );

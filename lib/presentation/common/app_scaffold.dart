@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../calculator/widgets/natural_lang_bar.dart';
 
 class AppScaffold extends StatelessWidget {
   final Widget child;
@@ -30,24 +31,31 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) => _onTap(context, index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.calculate_outlined),
-            selectedIcon: Icon(Icons.calculate),
-            label: '계산기',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'AI 도우미',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: '기록',
+      // Fixed natural language bar — visible only on calculator tab
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (currentIndex == 0) const NaturalLangBar(),
+          NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: (index) => _onTap(context, index),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.calculate_outlined),
+                selectedIcon: Icon(Icons.calculate),
+                label: '계산기',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.auto_awesome_outlined),
+                selectedIcon: Icon(Icons.auto_awesome),
+                label: 'AI 도우미',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history),
+                label: '기록',
+              ),
+            ],
           ),
         ],
       ),

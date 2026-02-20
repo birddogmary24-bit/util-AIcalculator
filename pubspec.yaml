@@ -25,8 +25,14 @@ dependencies:
   path_provider: ^2.1.5
   path: any
 
-  # HTTP (Claude API)
+  # HTTP
   http: ^1.2.2
+
+  # Google Gemini AI
+  google_generative_ai: ^0.4.6
+
+  # Voice Input
+  speech_to_text: ^7.3.0
 
   # Secure Storage (API Key)
   flutter_secure_storage: ^9.2.4
@@ -39,6 +45,7 @@ dependencies:
 
   # Internationalization
   intl: ^0.19.0
+  google_fonts: ^6.2.1
 
   # Utils
   uuid: ^4.5.1
@@ -64,3 +71,9 @@ flutter:
 
   assets:
     - assets/images/
+
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
