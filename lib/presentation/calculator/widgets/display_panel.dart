@@ -341,7 +341,7 @@ class _DisplayPanelState extends State<DisplayPanel>
                         copyLabel: widget.copyLabel,
                         copiedLabel: widget.copiedLabel,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 32),
                       if (_isCurrentResultAi)
                         const Padding(
                           padding: EdgeInsets.only(right: 6),
@@ -362,8 +362,7 @@ class _DisplayPanelState extends State<DisplayPanel>
                       // Number + cursor (rightmost)
                       Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 200),
@@ -388,8 +387,8 @@ class _DisplayPanelState extends State<DisplayPanel>
                               opacity: _cursorAnim,
                               child: Container(
                                 width: 3,
-                                height: fs * 0.7,
-                                margin: const EdgeInsets.only(left: 3),
+                                height: fs * 0.65,
+                                margin: const EdgeInsets.only(left: 4),
                                 decoration: BoxDecoration(
                                   color: AppColors.lcdCursor,
                                   borderRadius: BorderRadius.circular(1),
