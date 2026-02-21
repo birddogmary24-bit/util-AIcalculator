@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -34,14 +36,16 @@ class _FuelScreenState extends ConsumerState<FuelScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(fuelProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
 
     return ToolScaffold(
-      title: '연비 계산기',
+      title: isKr ? '연비 계산기' : 'Fuel Calculator',
       children: [
-        // 주행거리 입력
+        // Distance input
         LabeledInputField(
-          label: '주행거리',
-          hint: '주행거리를 입력하세요',
+          label: isKr ? '주행거리' : 'Distance',
+          hint: isKr ? '주행거리를 입력하세요' : 'Enter distance',
           suffix: 'km',
           controller: _distanceController,
           onChanged: (v) {
@@ -52,10 +56,10 @@ class _FuelScreenState extends ConsumerState<FuelScreen> {
 
         const SizedBox(height: 20),
 
-        // 주유량 입력
+        // Fuel amount input
         LabeledInputField(
-          label: '주유량',
-          hint: '주유량을 입력하세요',
+          label: isKr ? '주유량' : 'Fuel Amount',
+          hint: isKr ? '주유량을 입력하세요' : 'Enter fuel amount',
           suffix: 'L',
           controller: _fuelController,
           onChanged: (v) {
@@ -66,11 +70,11 @@ class _FuelScreenState extends ConsumerState<FuelScreen> {
 
         const SizedBox(height: 20),
 
-        // 유가 입력
+        // Gas price input
         LabeledInputField(
-          label: '유가',
-          hint: '리터당 가격을 입력하세요',
-          suffix: '원/L',
+          label: isKr ? '유가' : 'Gas Price',
+          hint: isKr ? '리터당 가격을 입력하세요' : 'Enter price per liter',
+          suffix: isKr ? '원/L' : '/L',
           controller: _gasPriceController,
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
@@ -80,9 +84,9 @@ class _FuelScreenState extends ConsumerState<FuelScreen> {
 
         const SizedBox(height: 24),
 
-        // 결과 표시
+        // Results
         ResultDisplayCard(
-          label: '연비',
+          label: isKr ? '연비' : 'Fuel Efficiency',
           value: _formatNumber(state.fuelEfficiency),
           unit: 'km/L',
           accentColor: cs.primary,
@@ -91,17 +95,17 @@ class _FuelScreenState extends ConsumerState<FuelScreen> {
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: 'km당 비용',
+          label: isKr ? 'km당 비용' : 'Cost per km',
           value: _formatNumber(state.costPerKm),
-          unit: '원/km',
+          unit: isKr ? '원/km' : '/km',
         ),
 
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: '총 연료비',
+          label: isKr ? '총 연료비' : 'Total Fuel Cost',
           value: _formatNumber(state.totalFuelCost),
-          unit: '원',
+          unit: isKr ? '원' : '',
           accentColor: cs.error,
         ),
       ],

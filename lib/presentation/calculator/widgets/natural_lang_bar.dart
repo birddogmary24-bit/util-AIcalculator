@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../../core/constants/region.dart';
 import '../../../core/theme/colors.dart';
 import '../../../providers/config_provider.dart';
+import '../../../providers/region_provider.dart';
 import '../calculator_provider.dart';
 import '../../ai_chat/ai_chat_screen.dart';
 
@@ -69,7 +72,7 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
     );
   }
 
-  Future<void> _toggleListening() async {
+  Future<void> _toggleListening(RegionMode region) async {
     if (!_speechAvailable) return;
 
     if (_isListening) {
@@ -92,7 +95,7 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
             Future.delayed(const Duration(milliseconds: 300), _submit);
           }
         },
-        localeId: 'ko_KR',
+        localeId: region == RegionMode.kr ? 'ko_KR' : 'en_US',
         listenFor: const Duration(seconds: 10),
         pauseFor: const Duration(seconds: 3),
         listenOptions: SpeechListenOptions(cancelOnError: true),
@@ -102,6 +105,8 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
 
   @override
   Widget build(BuildContext context) {
+    final region = ref.watch(regionProvider);
+    final s = AppStrings.of(region);
     final apiKey = ref.watch(apiKeyNotifierProvider).valueOrNull;
     final hasKey = apiKey != null && apiKey.isNotEmpty;
     final isAiLoading = ref.watch(calculatorProvider).isAiLoading;
@@ -110,17 +115,7 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.border,
-            width: 0.5,
-          ),
-          bottom: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.border,
-            width: 0.5,
-          ),
-        ),
+        color: isDark ? AppColors.darkSurface : AppColors.background,
       ),
       child: Row(
         children: [
@@ -129,27 +124,51 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
               controller: _controller,
               enabled: hasKey && !isAiLoading,
               onSubmitted: (_) => _submit(),
+              maxLength: 200,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
               style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
                 hintText: hasKey
-                    ? (_isListening ? '듣고 있습니다...' : 'AI한테 물어서 계산하세요')
-                    : 'AI 기능을 위해 API 키를 설정하세요',
+                    ? (isAiLoading
+                        ? s['ai_loading']!
+                        : (_isListening ? s['listening']! : s['ask_ai']!))
+                    : s['set_api_key_hint']!,
                 hintStyle: TextStyle(
-                  color: _isListening ? AppColors.error : AppColors.expressionText,
+                  color: isAiLoading
+                      ? AppColors.primary
+                      : (_isListening ? AppColors.error : AppColors.expressionText),
                   fontSize: 14,
                 ),
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(
+                    color: AppColors.border.withAlpha(120),
+                    width: 0.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
                 isDense: true,
+                counterText: '',
               ),
             ),
           ),
           const SizedBox(width: 8),
 
-          // AI chat button — gradient
+          // AI chat button — convex indigo
           GestureDetector(
             onTap: hasKey ? () => _showAiChat(context) : null,
             child: Container(
@@ -158,9 +177,14 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
               decoration: BoxDecoration(
                 gradient: hasKey
                     ? const LinearGradient(
-                        colors: [Color(0xFF4E8AFF), Color(0xFF9B6DFF)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF7986CB),
+                          Color(0xFF3F51B5),
+                          Color(0xFF283593),
+                        ],
+                        stops: [0.0, 0.5, 1.0],
                       )
                     : null,
                 color: hasKey ? null : AppColors.expressionText.withAlpha(50),
@@ -168,9 +192,14 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
                 boxShadow: hasKey
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF6B7FFF).withAlpha(100),
+                          color: const Color(0x66FFFFFF),
+                          blurRadius: 3,
+                          offset: const Offset(-1, -1),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xAA283593),
                           blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          offset: const Offset(2, 3),
                         ),
                       ]
                     : null,
@@ -192,16 +221,21 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
           // Mic button
           if (_speechAvailable)
             _CircleButton(
-              onTap: hasKey ? _toggleListening : null,
+              onTap: hasKey ? () => _toggleListening(region) : null,
               gradient: _isListening
                   ? null
-                  : (hasKey ? const LinearGradient(colors: [Color(0xFF5A5E6B), Color(0xFF3A3E4B)]) : null),
+                  : (hasKey
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF7986CB), Color(0xFF3F51B5), Color(0xFF283593)],
+                          stops: [0.0, 0.5, 1.0],
+                        )
+                      : null),
               color: _isListening
                   ? AppColors.error
-                  : (hasKey ? AppColors.operatorBtn : AppColors.expressionText.withAlpha(50)),
-              icon: _isListening
-                  ? Icons.stop_rounded
-                  : Icons.mic_rounded,
+                  : AppColors.expressionText.withAlpha(50),
+              icon: _isListening ? Icons.stop_rounded : Icons.mic_rounded,
               iconColor: Colors.white,
               iconSize: 22,
               pulse: _isListening,
@@ -211,9 +245,15 @@ class _NaturalLangBarState extends ConsumerState<NaturalLangBar> {
           // Send button
           _CircleButton(
             onTap: hasKey && !isAiLoading ? _submit : null,
-            color: hasKey && !isAiLoading
-                ? AppColors.primary
-                : AppColors.expressionText.withAlpha(50),
+            gradient: hasKey && !isAiLoading
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF7986CB), Color(0xFF3F51B5), Color(0xFF283593)],
+                    stops: [0.0, 0.5, 1.0],
+                  )
+                : null,
+            color: AppColors.expressionText.withAlpha(50),
             icon: isAiLoading ? null : Icons.arrow_upward_rounded,
             iconColor: Colors.white,
             iconSize: 22,
@@ -306,7 +346,20 @@ class _CircleButtonState extends State<_CircleButton>
                       spreadRadius: 2,
                     ),
                   ]
-                : null,
+                : widget.gradient != null
+                    ? [
+                        BoxShadow(
+                          color: const Color(0x66FFFFFF),
+                          blurRadius: 3,
+                          offset: const Offset(-1, -1),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xAA283593),
+                          blurRadius: 8,
+                          offset: const Offset(2, 3),
+                        ),
+                      ]
+                    : null,
           ),
           child: widget.isLoading
               ? const Padding(

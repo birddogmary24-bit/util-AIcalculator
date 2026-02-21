@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import 'birthday_provider.dart';
 
 class BirthdayScreen extends ConsumerStatefulWidget {
@@ -16,39 +19,48 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(birthdayProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
-        title: const Text(
-          '생일 기억',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          isKr ? '생일 기억' : 'Birthday Reminder',
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         foregroundColor: cs.onSurface,
         elevation: 0,
         scrolledUnderElevation: 1,
         surfaceTintColor: cs.surfaceTint,
+        actions: [
+          IconButton(
+            onPressed: () => _showInfoDialog(isKr),
+            icon: Icon(Icons.info_outline, color: cs.primary, size: 26),
+            tooltip: isKr ? '알림 안내' : 'Notification Info',
+          ),
+        ],
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.entries.isEmpty
-              ? _buildEmptyState()
-              : _buildList(state),
+              ? _buildEmptyState(isKr)
+              : _buildList(state, isKr),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddDialog(),
+        onPressed: () => _showAddDialog(isKr),
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
         icon: const Icon(Icons.add, size: 24),
-        label: const Text(
-          '추가',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        label: Text(
+          isKr ? '추가' : 'Add',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isKr) {
     final cs = Theme.of(context).colorScheme;
 
     return Center(
@@ -62,7 +74,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            '등록된 생일이 없습니다',
+            isKr ? '등록된 생일이 없습니다' : 'No birthdays registered',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -71,7 +83,9 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            '아래 추가 버튼을 눌러\n소중한 사람의 생일을 등록하세요',
+            isKr
+                ? '아래 추가 버튼을 눌러\n소중한 사람의 생일을 등록하세요'
+                : 'Tap the Add button below\nto register a birthday',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -80,7 +94,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => _showAddDialog(),
+            onPressed: () => _showAddDialog(isKr),
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.primary,
               foregroundColor: cs.onPrimary,
@@ -90,9 +104,9 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
               ),
             ),
             icon: const Icon(Icons.add),
-            label: const Text(
-              '생일 추가하기',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            label: Text(
+              isKr ? '생일 추가하기' : 'Add Birthday',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -100,7 +114,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
     );
   }
 
-  Widget _buildList(BirthdayState state) {
+  Widget _buildList(BirthdayState state, bool isKr) {
     final sorted = state.sortedEntries;
 
     return ListView.builder(
@@ -108,12 +122,12 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final entry = sorted[index];
-        return _buildBirthdayCard(entry);
+        return _buildBirthdayCard(entry, isKr);
       },
     );
   }
 
-  Widget _buildBirthdayCard(BirthdayEntry entry) {
+  Widget _buildBirthdayCard(BirthdayEntry entry, bool isKr) {
     final cs = Theme.of(context).colorScheme;
     final daysUntil = entry.daysUntilNext();
     final isToday = entry.isBirthdayToday;
@@ -122,7 +136,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
     String ddayText;
     Color ddayColor;
     if (isToday) {
-      ddayText = '오늘!';
+      ddayText = isKr ? '오늘!' : 'Today!';
       ddayColor = cs.error;
     } else {
       ddayText = 'D-$daysUntil';
@@ -130,9 +144,17 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
     }
 
     // Date display
-    final dateText = entry.year != null
-        ? '${entry.year}년 ${entry.month}월 ${entry.day}일'
-        : '${entry.month}월 ${entry.day}일';
+    String dateText;
+    if (isKr) {
+      dateText = entry.year != null
+          ? '${entry.year}년 ${entry.month}월 ${entry.day}일'
+          : '${entry.month}월 ${entry.day}일';
+    } else {
+      final monthName = DateFormat('MMM').format(DateTime(2000, entry.month));
+      dateText = entry.year != null
+          ? '$monthName ${entry.day}, ${entry.year}'
+          : '$monthName ${entry.day}';
+    }
 
     // Age display
     final age = entry.currentAge;
@@ -157,17 +179,21 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
         return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('삭제 확인'),
-            content: Text('${entry.name}님의 생일을 삭제하시겠습니까?'),
+            title: Text(isKr ? '삭제 확인' : 'Confirm Delete'),
+            content: Text(
+              isKr
+                  ? '${entry.name}님의 생일을 삭제하시겠습니까?'
+                  : 'Delete ${entry.name}\'s birthday?',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('취소'),
+                child: Text(isKr ? '취소' : 'Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: TextButton.styleFrom(foregroundColor: cs.error),
-                child: const Text('삭제'),
+                child: Text(isKr ? '삭제' : 'Delete'),
               ),
             ],
           ),
@@ -224,7 +250,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                   if (age != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      '만 $age세',
+                      isKr ? '만 $age세' : 'Age $age',
                       style: TextStyle(
                         fontSize: 13,
                         color: cs.onSurfaceVariant,
@@ -257,7 +283,217 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
     );
   }
 
-  Future<void> _showAddDialog() async {
+  void _showInfoDialog(bool isKr) {
+    final cs = Theme.of(context).colorScheme;
+    final isWeb = kIsWeb;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.notifications_active, color: cs.primary, size: 28),
+            const SizedBox(width: 10),
+            Text(
+              isKr ? '생일 알림 안내' : 'Birthday Notifications',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isKr
+                    ? '생일을 등록하면 자동으로 알림이 설정됩니다.'
+                    : 'Notifications are set automatically when you add a birthday.',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildInfoRow(
+                icon: Icons.alarm,
+                color: cs.primary,
+                title: isKr ? '3일 전  오후 6시' : '3 days before  6:00 PM',
+                subtitle: isKr
+                    ? '"OO님 생일이 3일 남았어요!"'
+                    : '"Birthday is in 3 days!"',
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                icon: Icons.alarm,
+                color: cs.tertiary,
+                title: isKr ? '1일 전  오후 6시' : '1 day before  6:00 PM',
+                subtitle: isKr
+                    ? '"내일은 OO님 생일이에요!"'
+                    : '"Tomorrow is their birthday!"',
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                icon: Icons.celebration,
+                color: cs.error,
+                title: isKr ? '당일  오전 8시' : 'On the day  8:00 AM',
+                subtitle: isKr
+                    ? '"오늘은 OO님 생일입니다!"'
+                    : '"Today is their birthday!"',
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withAlpha(80),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.touch_app, size: 20, color: cs.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isKr
+                            ? '알림을 탭하면 이 페이지로 바로 이동합니다.'
+                            : 'Tap a notification to jump to this page.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isWeb) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer.withAlpha(80),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.web, size: 20, color: cs.error),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isKr
+                              ? '웹 버전에서는 알림이 지원되지 않습니다.\n모바일 앱에서 이용해 주세요.'
+                              : 'Notifications are not supported on web.\nPlease use the mobile app.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: cs.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withAlpha(80),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.security, size: 20, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          isKr
+                              ? '알림을 받으려면 기기의 알림 권한을 허용해 주세요.'
+                              : 'Please allow notification permission on your device.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              isKr ? '확인' : 'OK',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withAlpha(25),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showAddDialog(bool isKr) async {
     final nameController = TextEditingController();
     DateTime selectedDate = DateTime.now();
     bool includeYear = true;
@@ -268,14 +504,21 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final dialogCs = Theme.of(context).colorScheme;
-            final dateText = includeYear
-                ? DateFormat('yyyy년 M월 d일').format(selectedDate)
-                : DateFormat('M월 d일').format(selectedDate);
+            String dateText;
+            if (isKr) {
+              dateText = includeYear
+                  ? DateFormat('yyyy년 M월 d일').format(selectedDate)
+                  : DateFormat('M월 d일').format(selectedDate);
+            } else {
+              dateText = includeYear
+                  ? DateFormat('MMM d, yyyy').format(selectedDate)
+                  : DateFormat('MMM d').format(selectedDate);
+            }
 
             return AlertDialog(
-              title: const Text(
-                '생일 추가',
-                style: TextStyle(
+              title: Text(
+                isKr ? '생일 추가' : 'Add Birthday',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -287,7 +530,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                   children: [
                     // Name input
                     Text(
-                      '이름',
+                      isKr ? '이름' : 'Name',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -299,7 +542,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                       controller: nameController,
                       style: const TextStyle(fontSize: 18),
                       decoration: InputDecoration(
-                        hintText: '이름을 입력하세요',
+                        hintText: isKr ? '이름을 입력하세요' : 'Enter name',
                         hintStyle: TextStyle(
                           fontSize: 16,
                           color: dialogCs.onSurfaceVariant.withAlpha(120),
@@ -331,7 +574,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
 
                     // Date picker
                     Text(
-                      '생일',
+                      isKr ? '생일' : 'Birthday',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -346,7 +589,7 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                           initialDate: selectedDate,
                           firstDate: DateTime(1920),
                           lastDate: DateTime.now(),
-                          locale: const Locale('ko'),
+                          locale: isKr ? const Locale('ko') : const Locale('en'),
                         );
                         if (picked != null) {
                           setDialogState(() => selectedDate = picked);
@@ -396,7 +639,9 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                           activeColor: dialogCs.primary,
                         ),
                         Text(
-                          '출생연도 포함 (나이 계산)',
+                          isKr
+                              ? '출생연도 포함 (나이 계산)'
+                              : 'Include birth year (age calc)',
                           style: TextStyle(
                             fontSize: 14,
                             color: dialogCs.onSurface,
@@ -410,9 +655,9 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text(
-                    '취소',
-                    style: TextStyle(fontSize: 16),
+                  child: Text(
+                    isKr ? '취소' : 'Cancel',
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ),
                 ElevatedButton(
@@ -439,9 +684,9 @@ class _BirthdayScreenState extends ConsumerState<BirthdayScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    '추가',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    isKr ? '추가' : 'Add',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

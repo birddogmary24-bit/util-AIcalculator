@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/region.dart';
 import '../../../domain/services/crypto_price_service.dart';
+import '../../../providers/region_provider.dart';
 
 const coinLabels = <String, String>{
   'bitcoin': 'Bitcoin(BTC)',
@@ -97,8 +99,11 @@ class CryptoState {
 
 class CryptoNotifier extends StateNotifier<CryptoState> {
   final CryptoPriceService _service;
+  final RegionMode _region;
 
-  CryptoNotifier(this._service) : super(const CryptoState());
+  CryptoNotifier(this._service, this._region) : super(const CryptoState());
+
+  bool get _isKr => _region == RegionMode.kr;
 
   Future<void> fetchPrices() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -109,7 +114,9 @@ class CryptoNotifier extends StateNotifier<CryptoState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: '시세 정보를 불러올 수 없습니다.',
+        error: _isKr
+            ? '시세 정보를 불러올 수 없습니다.'
+            : 'Unable to fetch price data.',
       );
     }
   }
@@ -174,7 +181,9 @@ class CryptoNotifier extends StateNotifier<CryptoState> {
     } catch (e) {
       state = state.copyWith(
         isSimulationLoading: false,
-        simulationError: '과거 시세를 가져올 수 없습니다: $e',
+        simulationError: _isKr
+            ? '과거 시세를 가져올 수 없습니다: $e'
+            : 'Unable to fetch historical price: $e',
       );
     }
   }
@@ -199,5 +208,6 @@ class CryptoNotifier extends StateNotifier<CryptoState> {
 final cryptoProvider =
     StateNotifierProvider<CryptoNotifier, CryptoState>((ref) {
   final service = ref.watch(cryptoPriceServiceProvider);
-  return CryptoNotifier(service);
+  final region = ref.watch(regionProvider);
+  return CryptoNotifier(service, region);
 });

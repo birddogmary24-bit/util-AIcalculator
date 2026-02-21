@@ -47,6 +47,7 @@ app.*.map.json
 # Secrets
 .env
 .env.*
+run_dev.sh
 android/key.properties
 android/local.properties
 

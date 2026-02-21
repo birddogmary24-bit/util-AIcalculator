@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/thousands_input_formatter.dart';
+
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -39,16 +43,20 @@ class _CapitalGainsTaxScreenState
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(capitalGainsTaxProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : 'KRW';
 
     return ToolScaffold(
-      title: '양도세 계산기',
+      title: isKr ? '양도세 계산기' : 'Capital Gains Tax',
       children: [
         // ── 양도가액 ─────────────────────────────────────────────────────
         LabeledInputField(
-          label: '양도가액 (매도 금액)',
-          hint: '매도 금액을 입력하세요',
-          suffix: '원',
+          label: isKr ? '양도가액 (매도 금액)' : 'Sale Price',
+          hint: isKr ? '매도 금액을 입력하세요' : 'Enter sale price',
+          suffix: currencyUnit,
           controller: _sellingController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(capitalGainsTaxProvider.notifier).setSellingPrice(parsed);
@@ -59,10 +67,11 @@ class _CapitalGainsTaxScreenState
 
         // ── 취득가액 ─────────────────────────────────────────────────────
         LabeledInputField(
-          label: '취득가액 (매수 금액)',
-          hint: '매수 금액을 입력하세요',
-          suffix: '원',
+          label: isKr ? '취득가액 (매수 금액)' : 'Purchase Price',
+          hint: isKr ? '매수 금액을 입력하세요' : 'Enter purchase price',
+          suffix: currencyUnit,
           controller: _purchaseController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(capitalGainsTaxProvider.notifier).setPurchasePrice(parsed);
@@ -73,10 +82,13 @@ class _CapitalGainsTaxScreenState
 
         // ── 필요경비 ─────────────────────────────────────────────────────
         LabeledInputField(
-          label: '필요경비 (중개수수료, 법무사비 등)',
-          hint: '경비를 입력하세요',
-          suffix: '원',
+          label: isKr
+              ? '필요경비 (중개수수료, 법무사비 등)'
+              : 'Expenses (brokerage, legal fees, etc.)',
+          hint: isKr ? '경비를 입력하세요' : 'Enter expenses',
+          suffix: currencyUnit,
           controller: _expensesController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(capitalGainsTaxProvider.notifier).setExpenses(parsed);
@@ -86,31 +98,34 @@ class _CapitalGainsTaxScreenState
         const SizedBox(height: 24),
 
         // ── 주택 수 (SegmentedButton) ────────────────────────────────────
-        _buildSectionLabel('주택 수'),
+        _buildSectionLabel(isKr ? '주택 수' : 'Number of Houses'),
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<HouseCount>(
-            segments: const [
+            segments: [
               ButtonSegment<HouseCount>(
                 value: HouseCount.one,
                 label: Text(
-                  '1주택',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  isKr ? '1주택' : '1 House',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               ButtonSegment<HouseCount>(
                 value: HouseCount.two,
                 label: Text(
-                  '2주택',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  isKr ? '2주택' : '2 Houses',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               ButtonSegment<HouseCount>(
                 value: HouseCount.threeOrMore,
                 label: Text(
-                  '3주택+',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  isKr ? '3주택+' : '3+',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -137,20 +152,23 @@ class _CapitalGainsTaxScreenState
 
         // ── 보유 기간 ────────────────────────────────────────────────────
         StyledDropdown<HoldingPeriod>(
-          label: '보유 기간',
+          label: isKr ? '보유 기간' : 'Holding Period',
           value: state.holdingPeriod,
-          items: const [
+          items: [
             DropdownMenuItem(
               value: HoldingPeriod.underOneYear,
-              child: Text('1년 미만', style: TextStyle(fontSize: 18)),
+              child: Text(isKr ? '1년 미만' : 'Under 1 year',
+                  style: const TextStyle(fontSize: 18)),
             ),
             DropdownMenuItem(
               value: HoldingPeriod.oneToTwo,
-              child: Text('1년~2년', style: TextStyle(fontSize: 18)),
+              child: Text(isKr ? '1년~2년' : '1-2 years',
+                  style: const TextStyle(fontSize: 18)),
             ),
             DropdownMenuItem(
               value: HoldingPeriod.overTwo,
-              child: Text('2년 이상', style: TextStyle(fontSize: 18)),
+              child: Text(isKr ? '2년 이상' : '2+ years',
+                  style: const TextStyle(fontSize: 18)),
             ),
           ],
           onChanged: (v) {
@@ -164,9 +182,11 @@ class _CapitalGainsTaxScreenState
         if (state.holdingPeriod == HoldingPeriod.overTwo) ...[
           const SizedBox(height: 20),
           LabeledInputField(
-            label: '보유 연수 (장기보유특별공제 계산용)',
-            hint: '예: 5',
-            suffix: '년',
+            label: isKr
+                ? '보유 연수 (장기보유특별공제 계산용)'
+                : 'Holding Years (for long-term deduction)',
+            hint: isKr ? '예: 5' : 'e.g. 5',
+            suffix: isKr ? '년' : 'yrs',
             controller: _holdingYearsController,
             onChanged: (v) {
               final parsed = int.tryParse(v) ?? 0;
@@ -182,7 +202,9 @@ class _CapitalGainsTaxScreenState
         // ── 비과세 적용 여부 ─────────────────────────────────────────────
         if (state.houseCount == HouseCount.one)
           _buildCheckboxRow(
-            label: '비과세 적용 (1주택 9억 이하)',
+            label: isKr
+                ? '비과세 적용 (1주택 9억 이하)'
+                : 'Tax Exempt (1 house, under 900M)',
             value: state.taxExempt,
             onChanged: (v) {
               ref
@@ -203,7 +225,7 @@ class _CapitalGainsTaxScreenState
             ),
           ),
           child: Text(
-            '계산 결과',
+            isKr ? '계산 결과' : 'Results',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -216,9 +238,9 @@ class _CapitalGainsTaxScreenState
 
         // ── 양도차익 ─────────────────────────────────────────────────────
         ResultDisplayCard(
-          label: '양도차익',
+          label: isKr ? '양도차익' : 'Capital Gain',
           value: _formatNumber(state.gain),
-          unit: '원',
+          unit: currencyUnit,
         ),
 
         const SizedBox(height: 12),
@@ -226,9 +248,9 @@ class _CapitalGainsTaxScreenState
         // ── 장기보유특별공제 ─────────────────────────────────────────────
         if (state.longTermDeduction > 0) ...[
           ResultDisplayCard(
-            label: '장기보유특별공제',
+            label: isKr ? '장기보유특별공제' : 'Long-term Holding Deduction',
             value: '- ${_formatNumber(state.longTermDeduction)}',
-            unit: '원',
+            unit: currencyUnit,
             accentColor: const Color(0xFF43A047),
           ),
           const SizedBox(height: 12),
@@ -236,9 +258,9 @@ class _CapitalGainsTaxScreenState
 
         // ── 기본공제 ─────────────────────────────────────────────────────
         ResultDisplayCard(
-          label: '양도소득 기본공제',
+          label: isKr ? '양도소득 기본공제' : 'Basic Deduction',
           value: '- ${_formatNumber(state.basicDeduction)}',
-          unit: '원',
+          unit: currencyUnit,
           accentColor: const Color(0xFF43A047),
         ),
 
@@ -246,18 +268,20 @@ class _CapitalGainsTaxScreenState
 
         // ── 과세표준 ─────────────────────────────────────────────────────
         ResultDisplayCard(
-          label: '과세표준',
+          label: isKr ? '과세표준' : 'Taxable Amount',
           value: _formatNumber(state.taxableAmount),
-          unit: '원',
+          unit: currencyUnit,
         ),
 
         const SizedBox(height: 12),
 
         // ── 적용 세율 ────────────────────────────────────────────────────
         _buildInfoRow(
-          '적용 세율',
+          isKr ? '적용 세율' : 'Tax Rate',
           state.additionalRatePoints > 0
-              ? '기본 ${(state.appliedRate - state.additionalRatePoints).toStringAsFixed(0)}% + 중과 ${state.additionalRatePoints.toStringAsFixed(0)}%p'
+              ? isKr
+                  ? '기본 ${(state.appliedRate - state.additionalRatePoints).toStringAsFixed(0)}% + 중과 ${state.additionalRatePoints.toStringAsFixed(0)}%p'
+                  : 'Base ${(state.appliedRate - state.additionalRatePoints).toStringAsFixed(0)}% + Surcharge ${state.additionalRatePoints.toStringAsFixed(0)}%p'
               : '${state.appliedRate.toStringAsFixed(0)}%',
         ),
 
@@ -265,9 +289,9 @@ class _CapitalGainsTaxScreenState
 
         // ── 양도소득세 ───────────────────────────────────────────────────
         ResultDisplayCard(
-          label: '양도소득세',
+          label: isKr ? '양도소득세' : 'Capital Gains Tax',
           value: _formatNumber(state.incomeTax),
-          unit: '원',
+          unit: currencyUnit,
           accentColor: cs.error,
         ),
 
@@ -275,9 +299,9 @@ class _CapitalGainsTaxScreenState
 
         // ── 지방소득세 ───────────────────────────────────────────────────
         ResultDisplayCard(
-          label: '지방소득세 (양도소득세의 10%)',
+          label: isKr ? '지방소득세 (양도소득세의 10%)' : 'Local Tax (10% of CGT)',
           value: _formatNumber(state.localTax),
-          unit: '원',
+          unit: currencyUnit,
           accentColor: cs.error,
         ),
 
@@ -294,7 +318,7 @@ class _CapitalGainsTaxScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '총 납부 세액',
+                isKr ? '총 납부 세액' : 'Total Tax Due',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -319,7 +343,7 @@ class _CapitalGainsTaxScreenState
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '원',
+                    currencyUnit,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -342,7 +366,9 @@ class _CapitalGainsTaxScreenState
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '※ 본 계산은 참고용이며, 정확한 세금은 세무사에 문의하세요.',
+            isKr
+                ? '※ 본 계산은 참고용이며, 정확한 세금은 세무사에 문의하세요.'
+                : '※ This calculation is for reference only. Consult a tax professional for accurate figures.',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,

@@ -1,3 +1,4 @@
+import '../../core/constants/region.dart';
 import '../../presentation/calculator/widgets/calc_button.dart';
 
 /// Action type for a calculator button.
@@ -7,17 +8,26 @@ enum ButtonAction { digit, operator, function, calculate, clear, navigate, speci
 class CalcButtonDef {
   final String id;
   final String label;
+  final String? labelKey;
   final CalcButtonType type;
   final ButtonAction action;
-  final String? param; // digit value, operator type, route path, etc.
+  final String? param;
+  final Set<RegionMode>? regions; // null = all regions
 
   const CalcButtonDef({
     required this.id,
     required this.label,
+    this.labelKey,
     required this.type,
     required this.action,
     this.param,
+    this.regions,
   });
+
+  String localizedLabel(RegionMode region) {
+    if (labelKey == null) return label;
+    return AppStrings.of(region)[labelKey!] ?? label;
+  }
 }
 
 // ── Default grid layout (5×4) ──────────────────────────────────────────────
@@ -62,21 +72,25 @@ const allButtonDefs = <CalcButtonDef>[
   CalcButtonDef(id: 'ai', label: 'AI', type: CalcButtonType.function, action: ButtonAction.special, param: 'ai'),
 
   // ── Tool shortcuts (navigate to tool screens) ────────────────────────────
-  CalcButtonDef(id: 'tool_currency', label: '환율', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/currency'),
-  CalcButtonDef(id: 'tool_crypto', label: '코인', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/crypto'),
-  CalcButtonDef(id: 'tool_discount', label: '할인', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/discount'),
-  CalcButtonDef(id: 'tool_vat', label: '부가세', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/vat'),
-  CalcButtonDef(id: 'tool_loan', label: '대출', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/loan'),
-  CalcButtonDef(id: 'tool_capital_gains_tax', label: '양도세', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/capital-gains-tax'),
-  CalcButtonDef(id: 'tool_brokerage_fee', label: '복비', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/brokerage-fee'),
-  CalcButtonDef(id: 'tool_dday', label: 'D-day', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/dday'),
-  CalcButtonDef(id: 'tool_birthday', label: '생일', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/birthday'),
-  CalcButtonDef(id: 'tool_world_clock', label: '시계', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/world-clock'),
-  CalcButtonDef(id: 'tool_unit', label: '단위', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/unit'),
-  CalcButtonDef(id: 'tool_bmi', label: 'BMI', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/bmi'),
-  CalcButtonDef(id: 'tool_fuel', label: '연비', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/fuel'),
-  CalcButtonDef(id: 'tool_period', label: '생리', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/period'),
-  CalcButtonDef(id: 'tool_base_converter', label: '진법', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/base-converter'),
+  CalcButtonDef(id: 'tool_currency', label: '환율', labelKey: 'btn_currency', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/currency'),
+  CalcButtonDef(id: 'tool_crypto', label: '코인', labelKey: 'btn_crypto', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/crypto'),
+  CalcButtonDef(id: 'tool_discount', label: '할인', labelKey: 'btn_discount', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/discount'),
+  CalcButtonDef(id: 'tool_vat', label: '부가세', labelKey: 'btn_vat', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/vat', regions: {RegionMode.kr}),
+  CalcButtonDef(id: 'tool_loan', label: '대출', labelKey: 'btn_loan', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/loan'),
+  CalcButtonDef(id: 'tool_capital_gains_tax', label: '양도세', labelKey: 'btn_capital_gains_tax', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/capital-gains-tax', regions: {RegionMode.kr}),
+  CalcButtonDef(id: 'tool_brokerage_fee', label: '복비', labelKey: 'btn_brokerage_fee', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/brokerage-fee', regions: {RegionMode.kr}),
+  CalcButtonDef(id: 'tool_dday', label: 'D-day', labelKey: 'btn_dday', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/dday'),
+  CalcButtonDef(id: 'tool_birthday', label: '생일', labelKey: 'btn_birthday', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/birthday'),
+  CalcButtonDef(id: 'tool_world_clock', label: '시계', labelKey: 'btn_world_clock', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/world-clock'),
+  CalcButtonDef(id: 'tool_unit', label: '단위', labelKey: 'btn_unit', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/unit'),
+  CalcButtonDef(id: 'tool_bmi', label: 'BMI', labelKey: 'btn_bmi', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/bmi'),
+  CalcButtonDef(id: 'tool_fuel', label: '연비', labelKey: 'btn_fuel', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/fuel'),
+  CalcButtonDef(id: 'tool_period', label: '생리', labelKey: 'btn_period', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/period'),
+  CalcButtonDef(id: 'tool_base_converter', label: '진법', labelKey: 'btn_base_converter', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/base-converter'),
+  // Global tools
+  CalcButtonDef(id: 'tool_tip', label: 'Tip', labelKey: 'btn_tip', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/tip', regions: {RegionMode.global}),
+  CalcButtonDef(id: 'tool_sales_tax', label: 'Tax', labelKey: 'btn_sales_tax', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/sales-tax', regions: {RegionMode.global}),
+  CalcButtonDef(id: 'tool_split_bill', label: '더치', labelKey: 'btn_split_bill', type: CalcButtonType.function, action: ButtonAction.navigate, param: '/tools/split-bill'),
 ];
 
 /// Lookup a button definition by ID.
@@ -87,7 +101,31 @@ CalcButtonDef? getButtonDef(String id) {
   return null;
 }
 
-/// Group buttons by category for the swap modal.
+/// Get button categories filtered by region.
+Map<String, List<String>> getButtonCategories(RegionMode region) {
+  final s = AppStrings.of(region);
+  return {
+    s['bcat_digits']!: [
+      'digit_0', 'digit_1', 'digit_2', 'digit_3', 'digit_4',
+      'digit_5', 'digit_6', 'digit_7', 'digit_8', 'digit_9',
+    ],
+    s['bcat_operators']!: [
+      'op_add', 'op_subtract', 'op_multiply', 'op_divide',
+    ],
+    s['bcat_functions']!: [
+      'clear', 'toggle_sign', 'percent', 'paren', 'decimal', 'equals',
+      'sqrt', 'ai',
+    ],
+    s['bcat_tools']!: allButtonDefs
+        .where((def) =>
+            def.action == ButtonAction.navigate &&
+            (def.regions == null || def.regions!.contains(region)))
+        .map((def) => def.id)
+        .toList(),
+  };
+}
+
+/// Legacy buttonCategories for backward compatibility
 const buttonCategories = <String, List<String>>{
   '숫자': [
     'digit_0', 'digit_1', 'digit_2', 'digit_3', 'digit_4',
@@ -105,5 +143,6 @@ const buttonCategories = <String, List<String>>{
     'tool_loan', 'tool_capital_gains_tax', 'tool_brokerage_fee',
     'tool_dday', 'tool_birthday', 'tool_world_clock',
     'tool_unit', 'tool_bmi', 'tool_fuel', 'tool_period', 'tool_base_converter',
+    'tool_tip', 'tool_sales_tax', 'tool_split_bill',
   ],
 };

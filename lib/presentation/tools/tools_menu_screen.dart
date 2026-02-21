@@ -1,28 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/constants/region.dart';
 import '../../core/constants/tool_registry.dart';
 import '../../domain/models/tool_definition.dart';
+import '../../providers/region_provider.dart';
 
-class ToolsMenuScreen extends StatelessWidget {
+class ToolsMenuScreen extends ConsumerWidget {
   const ToolsMenuScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final region = ref.watch(regionProvider);
+    final s = AppStrings.of(region);
     final cs = Theme.of(context).colorScheme;
 
-    // Group tools by category, preserving toolCategories order
+    // Get region-filtered tools and localized categories
+    final filteredTools = getFilteredTools(region);
+    final localizedCategories = getToolCategories(region);
+
+    // Group tools by localized category, preserving order
     final grouped = <String, List<ToolDefinition>>{};
-    for (final cat in toolCategories) {
-      final items = toolRegistry.where((t) => t.category == cat).toList();
+    for (final cat in localizedCategories) {
+      final items = filteredTools
+          .where((t) => t.localizedCategory(region) == cat)
+          .toList();
       if (items.isNotEmpty) grouped[cat] = items;
     }
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
-        title: const Text(
-          '계산기 더보기',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          s['tools_title']!,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         foregroundColor: cs.onSurface,
@@ -48,6 +59,7 @@ class ToolsMenuScreen extends StatelessWidget {
             ...entry.value.map(
               (tool) => _ToolListItem(
                 tool: tool,
+                region: region,
                 onTap: () => context.push('/tools/${tool.routePath}'),
               ),
             ),
@@ -60,9 +72,14 @@ class ToolsMenuScreen extends StatelessWidget {
 
 class _ToolListItem extends StatelessWidget {
   final ToolDefinition tool;
+  final RegionMode region;
   final VoidCallback onTap;
 
-  const _ToolListItem({required this.tool, required this.onTap});
+  const _ToolListItem({
+    required this.tool,
+    required this.region,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +95,7 @@ class _ToolListItem extends StatelessWidget {
             Icon(tool.icon, color: tool.color, size: 28),
             const SizedBox(width: 14),
             Text(
-              tool.label,
+              tool.localizedLabel(region),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,

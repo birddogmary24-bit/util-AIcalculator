@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -29,19 +31,19 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
     super.dispose();
   }
 
-  Color _categoryColor(String category) {
-    switch (category) {
-      case '저체중':
+  Color _categoryColor(String categoryKey) {
+    switch (categoryKey) {
+      case 'underweight':
         return Colors.blue;
-      case '정상':
+      case 'normal':
         return Colors.green;
-      case '과체중':
+      case 'overweight':
         return Colors.orange;
-      case '비만 1단계':
+      case 'obese1':
         return Colors.deepOrange;
-      case '비만 2단계':
+      case 'obese2':
         return Colors.red;
-      case '고도비만':
+      case 'morbid':
         return Colors.red.shade900;
       default:
         return Theme.of(context).colorScheme.onSurfaceVariant;
@@ -58,14 +60,16 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(bmiProvider);
     final notifier = ref.read(bmiProvider.notifier);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
 
     return ToolScaffold(
-      title: '비만도 계산기',
+      title: isKr ? '비만도 계산기' : 'BMI Calculator',
       children: [
         // ── Inputs ──────────────────────────────────────
         LabeledInputField(
-          label: '신장 (cm)',
-          hint: '예: 170',
+          label: isKr ? '신장 (cm)' : 'Height (cm)',
+          hint: isKr ? '예: 170' : 'e.g. 170',
           suffix: 'cm',
           controller: _heightCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -77,8 +81,8 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
         const SizedBox(height: 16),
 
         LabeledInputField(
-          label: '체중 (kg)',
-          hint: '예: 65',
+          label: isKr ? '체중 (kg)' : 'Weight (kg)',
+          hint: isKr ? '예: 65' : 'e.g. 65',
           suffix: 'kg',
           controller: _weightCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -90,11 +94,17 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
         const SizedBox(height: 16),
 
         StyledDropdown<Gender>(
-          label: '성별',
+          label: isKr ? '성별' : 'Gender',
           value: state.gender,
-          items: const [
-            DropdownMenuItem(value: Gender.male, child: Text('남성')),
-            DropdownMenuItem(value: Gender.female, child: Text('여성')),
+          items: [
+            DropdownMenuItem(
+              value: Gender.male,
+              child: Text(isKr ? '남성' : 'Male'),
+            ),
+            DropdownMenuItem(
+              value: Gender.female,
+              child: Text(isKr ? '여성' : 'Female'),
+            ),
           ],
           onChanged: (v) {
             if (v != null) notifier.setGender(v);
@@ -103,9 +113,9 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
         const SizedBox(height: 16),
 
         LabeledInputField(
-          label: '나이 (세)',
-          hint: '예: 45',
-          suffix: '세',
+          label: isKr ? '나이 (세)' : 'Age (years)',
+          hint: isKr ? '예: 45' : 'e.g. 45',
+          suffix: isKr ? '세' : 'yrs',
           controller: _ageCtrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -116,9 +126,9 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
         // ── Results ─────────────────────────────────────
         if (state.bmi > 0) ...[
           ResultDisplayCard(
-            label: 'BMI 지수',
-            value: state.bmi.toStringAsFixed(1),
-            accentColor: _categoryColor(state.category),
+            label: isKr ? 'BMI 지수' : 'BMI Score',
+            value: _fmt.format(state.bmi),
+            accentColor: _categoryColor(state.categoryKey),
           ),
           const SizedBox(height: 12),
 
@@ -126,26 +136,26 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: _categoryColor(state.category).withAlpha(30),
+              color: _categoryColor(state.categoryKey).withAlpha(30),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               children: [
                 Text(
-                  'BMI 판정',
+                  isKr ? 'BMI 판정' : 'BMI Category',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: _categoryColor(state.category),
+                    color: _categoryColor(state.categoryKey),
                   ),
                 ),
                 const Spacer(),
                 Text(
-                  state.category,
+                  state.categoryLabel(region),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: _categoryColor(state.category),
+                    color: _categoryColor(state.categoryKey),
                   ),
                 ),
               ],
@@ -154,14 +164,14 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
           const SizedBox(height: 16),
 
           // Visual BMI scale
-          _buildBmiScale(state.bmi, cs),
+          _buildBmiScale(state.bmi, cs, region),
           const SizedBox(height: 16),
 
           if (state.bmr > 0) ...[
             ResultDisplayCard(
-              label: '기초대사량 (BMR)',
+              label: isKr ? '기초대사량 (BMR)' : 'Basal Metabolic Rate (BMR)',
               value: _fmt.format(state.bmr),
-              unit: 'kcal',
+              unit: isKr ? 'kcal' : 'kcal/day',
               accentColor: cs.primary,
             ),
             const SizedBox(height: 12),
@@ -171,9 +181,12 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
     );
   }
 
-  Widget _buildBmiScale(double bmi, ColorScheme cs) {
+  Widget _buildBmiScale(double bmi, ColorScheme cs, RegionMode region) {
     final fraction = _bmiToFraction(bmi);
-    final labels = ['저체중', '정상', '과체중', '비만1', '비만2', '고도비만'];
+    final isKr = region == RegionMode.kr;
+    final labels = isKr
+        ? ['저체중', '정상', '과체중', '비만1', '비만2', '고도비만']
+        : ['Under', 'Normal', 'Over', 'Obese I', 'Obese II', 'Morbid'];
     final thresholds = [18.5, 23.0, 25.0, 30.0, 35.0];
     final colors = [
       Colors.blue,
@@ -194,7 +207,7 @@ class _BmiScreenState extends ConsumerState<BmiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'BMI 척도',
+            isKr ? 'BMI 척도' : 'BMI Scale',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,

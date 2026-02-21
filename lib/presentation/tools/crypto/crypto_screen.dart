@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/thousands_input_formatter.dart';
+
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
 import '../../common/widgets/styled_dropdown.dart';
@@ -51,12 +55,14 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(cryptoProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
-        title: const Text('코인 계산기',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(isKr ? '코인 계산기' : 'Crypto Calculator',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         foregroundColor: cs.onSurface,
         elevation: 0,
@@ -69,33 +75,35 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
           indicatorColor: cs.primary,
           indicatorWeight: 3,
           labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: '시세 변환'),
-            Tab(text: '과거 시뮬레이션'),
+          tabs: [
+            Tab(text: isKr ? '시세 변환' : 'Conversion'),
+            Tab(text: isKr ? '과거 시뮬레이션' : 'Simulation'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildConversionTab(state),
-          _buildSimulationTab(state),
+          _buildConversionTab(state, region),
+          _buildSimulationTab(state, region),
         ],
       ),
     );
   }
 
-  // ─── Tab 1: 시세 변환 ───────────────────────────────────────────
+  // --- Tab 1: Conversion ---
 
-  Widget _buildConversionTab(CryptoState state) {
+  Widget _buildConversionTab(CryptoState state, RegionMode region) {
     final cs = Theme.of(context).colorScheme;
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : 'KRW';
 
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         // Coin selector
         StyledDropdown<String>(
-          label: '코인 선택',
+          label: isKr ? '코인 선택' : 'Select Coin',
           value: state.selectedCoin,
           items: coinLabels.entries
               .map((e) => DropdownMenuItem(
@@ -124,7 +132,9 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '현재 ${coinSymbols[state.selectedCoin] ?? ''} 시세',
+                  isKr
+                      ? '현재 ${coinSymbols[state.selectedCoin] ?? ''} 시세'
+                      : 'Current ${coinSymbols[state.selectedCoin] ?? ''} Price',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -132,7 +142,7 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
                   ),
                 ),
                 Text(
-                  '${_krwFmt.format(state.currentCoinPrice!)} 원',
+                  '${_krwFmt.format(state.currentCoinPrice!)} $currencyUnit',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -150,7 +160,7 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '변환 방향',
+              isKr ? '변환 방향' : 'Direction',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -165,14 +175,18 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
                   ButtonSegment(
                     value: true,
                     label: Text(
-                      '원화 → ${coinSymbols[state.selectedCoin] ?? '코인'}',
+                      isKr
+                          ? '원화 → ${coinSymbols[state.selectedCoin] ?? '코인'}'
+                          : 'KRW → ${coinSymbols[state.selectedCoin] ?? 'Coin'}',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
                   ButtonSegment(
                     value: false,
                     label: Text(
-                      '${coinSymbols[state.selectedCoin] ?? '코인'} → 원화',
+                      isKr
+                          ? '${coinSymbols[state.selectedCoin] ?? '코인'} → 원화'
+                          : '${coinSymbols[state.selectedCoin] ?? 'Coin'} → KRW',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
@@ -200,12 +214,17 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
 
         // Amount input
         LabeledInputField(
-          label: state.isKrwToCoin ? '금액 (원)' : '코인 수량',
-          hint: state.isKrwToCoin ? '원화 금액을 입력하세요' : '코인 수량을 입력하세요',
+          label: state.isKrwToCoin
+              ? (isKr ? '금액 (원)' : 'Amount (KRW)')
+              : (isKr ? '코인 수량' : 'Coin Quantity'),
+          hint: state.isKrwToCoin
+              ? (isKr ? '원화 금액을 입력하세요' : 'Enter KRW amount')
+              : (isKr ? '코인 수량을 입력하세요' : 'Enter coin quantity'),
           suffix: state.isKrwToCoin
-              ? '원'
+              ? currencyUnit
               : coinSymbols[state.selectedCoin] ?? '',
           controller: _amountController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(cryptoProvider.notifier).setAmount(parsed);
@@ -229,23 +248,25 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
         // Result
         if (state.result != null && !state.isLoading)
           ResultDisplayCard(
-            label: state.isKrwToCoin ? '변환 결과' : '변환 결과',
+            label: isKr ? '변환 결과' : 'Conversion Result',
             value: state.isKrwToCoin
                 ? _coinFmt.format(state.result!)
                 : _krwFmt.format(state.result!),
             unit: state.isKrwToCoin
                 ? coinSymbols[state.selectedCoin] ?? ''
-                : '원',
+                : currencyUnit,
             accentColor: cs.primary,
           ),
       ],
     );
   }
 
-  // ─── Tab 2: 과거 시뮬레이션 (BTC only) ──────────────────────────
+  // --- Tab 2: Past Simulation (BTC only) ---
 
-  Widget _buildSimulationTab(CryptoState state) {
+  Widget _buildSimulationTab(CryptoState state, RegionMode region) {
     final cs = Theme.of(context).colorScheme;
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : 'KRW';
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -263,7 +284,9 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '과거 특정 날짜에 비트코인에 투자했다면 현재 얼마가 되었을지 계산합니다.',
+                  isKr
+                      ? '과거 특정 날짜에 비트코인에 투자했다면 현재 얼마가 되었을지 계산합니다.'
+                      : 'Calculate how much your Bitcoin investment on a past date would be worth today.',
                   style: TextStyle(fontSize: 14, color: cs.onPrimaryContainer),
                 ),
               ),
@@ -278,7 +301,7 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '투자한 날짜',
+              isKr ? '투자한 날짜' : 'Investment Date',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -295,9 +318,9 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
                   firstDate: DateTime(2013, 1, 1),
                   lastDate:
                       DateTime.now().subtract(const Duration(days: 1)),
-                  helpText: '투자 날짜 선택',
-                  cancelText: '취소',
-                  confirmText: '선택',
+                  helpText: isKr ? '투자 날짜 선택' : 'Select Investment Date',
+                  cancelText: isKr ? '취소' : 'Cancel',
+                  confirmText: isKr ? '선택' : 'Select',
                 );
                 if (picked != null) {
                   ref
@@ -318,9 +341,12 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
                   children: [
                     Text(
                       state.simulationDate != null
-                          ? DateFormat('yyyy년 MM월 dd일')
-                              .format(state.simulationDate!)
-                          : '날짜를 선택하세요',
+                          ? (isKr
+                              ? DateFormat('yyyy년 MM월 dd일')
+                                  .format(state.simulationDate!)
+                              : DateFormat('MMM dd, yyyy')
+                                  .format(state.simulationDate!))
+                          : (isKr ? '날짜를 선택하세요' : 'Select a date'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -342,10 +368,11 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
 
         // Amount input
         LabeledInputField(
-          label: '투자 금액',
-          hint: '원화 금액을 입력하세요',
-          suffix: '원',
+          label: isKr ? '투자 금액' : 'Investment Amount',
+          hint: isKr ? '원화 금액을 입력하세요' : 'Enter KRW amount',
+          suffix: currencyUnit,
           controller: _simAmountController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(cryptoProvider.notifier).setSimulationAmount(parsed);
@@ -380,7 +407,7 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2.5),
                   )
-                : const Text('시뮬레이션 실행'),
+                : Text(isKr ? '시뮬레이션 실행' : 'Run Simulation'),
           ),
         ),
 
@@ -393,26 +420,26 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
         // Simulation results
         if (state.historicalPrice != null && !state.isSimulationLoading) ...[
           ResultDisplayCard(
-            label: '당시 비트코인 가격',
+            label: isKr ? '당시 비트코인 가격' : 'BTC Price at That Time',
             value: _krwFmt.format(state.historicalPrice!),
-            unit: '원',
+            unit: currencyUnit,
           ),
           const SizedBox(height: 12),
           ResultDisplayCard(
-            label: '구매한 BTC 수량',
+            label: isKr ? '구매한 BTC 수량' : 'BTC Purchased',
             value: _coinFmt.format(state.btcBought ?? 0),
             unit: 'BTC',
           ),
           const SizedBox(height: 12),
           ResultDisplayCard(
-            label: '현재 가치',
+            label: isKr ? '현재 가치' : 'Current Value',
             value: _krwFmt.format(state.currentValue ?? 0),
-            unit: '원',
+            unit: currencyUnit,
             accentColor: cs.primary,
           ),
           const SizedBox(height: 12),
           ResultDisplayCard(
-            label: '수익률',
+            label: isKr ? '수익률' : 'Return Rate',
             value: _percentFmt.format(state.profitPercent ?? 0),
             unit: '%',
             accentColor: (state.profitPercent ?? 0) >= 0
@@ -424,7 +451,7 @@ class _CryptoScreenState extends ConsumerState<CryptoScreen>
     );
   }
 
-  // ─── Shared error box ────────────────────────────────────────────
+  // --- Shared error box ---
 
   Widget _buildErrorBox(String message) {
     final cs = Theme.of(context).colorScheme;

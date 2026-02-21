@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/region.dart';
+
 // ── Category enum ────────────────────────────────────────────────────────────
 
 enum UnitCategory { length, weight, area, volume, temperature, speed }
@@ -8,14 +10,38 @@ enum UnitCategory { length, weight, area, volume, temperature, speed }
 
 class UnitItem {
   final String id;
-  final String label;
+  final String labelKr;
+  final String labelEn;
   final String symbol;
   final double toBase; // multiply by this to convert to the base unit
-  const UnitItem(this.id, this.label, this.symbol, this.toBase);
+  const UnitItem(this.id, this.labelKr, this.labelEn, this.symbol, this.toBase);
+
+  String label(RegionMode region) =>
+      region == RegionMode.kr ? labelKr : labelEn;
 }
 
 // ── Unit data ────────────────────────────────────────────────────────────────
 
+const Map<RegionMode, Map<UnitCategory, String>> categoryLabelsMap = {
+  RegionMode.kr: {
+    UnitCategory.length: '길이',
+    UnitCategory.weight: '무게',
+    UnitCategory.area: '넓이',
+    UnitCategory.volume: '부피',
+    UnitCategory.temperature: '온도',
+    UnitCategory.speed: '속도',
+  },
+  RegionMode.global: {
+    UnitCategory.length: 'Length',
+    UnitCategory.weight: 'Weight',
+    UnitCategory.area: 'Area',
+    UnitCategory.volume: 'Volume',
+    UnitCategory.temperature: 'Temperature',
+    UnitCategory.speed: 'Speed',
+  },
+};
+
+/// Shortcut for backward-compatibility (kr labels)
 const Map<UnitCategory, String> categoryLabels = {
   UnitCategory.length: '길이',
   UnitCategory.weight: '무게',
@@ -25,62 +51,66 @@ const Map<UnitCategory, String> categoryLabels = {
   UnitCategory.speed: '속도',
 };
 
+String categoryLabel(UnitCategory cat, RegionMode region) {
+  return categoryLabelsMap[region]?[cat] ?? categoryLabels[cat]!;
+}
+
 const Map<UnitCategory, List<UnitItem>> unitData = {
   // Length — base: m
   UnitCategory.length: [
-    UnitItem('mm', '밀리미터', 'mm', 0.001),
-    UnitItem('cm', '센티미터', 'cm', 0.01),
-    UnitItem('m', '미터', 'm', 1),
-    UnitItem('km', '킬로미터', 'km', 1000),
-    UnitItem('inch', '인치', 'in', 0.0254),
-    UnitItem('ft', '피트', 'ft', 0.3048),
-    UnitItem('yard', '야드', 'yd', 0.9144),
-    UnitItem('mile', '마일', 'mi', 1609.344),
+    UnitItem('mm', '밀리미터', 'Millimeter', 'mm', 0.001),
+    UnitItem('cm', '센티미터', 'Centimeter', 'cm', 0.01),
+    UnitItem('m', '미터', 'Meter', 'm', 1),
+    UnitItem('km', '킬로미터', 'Kilometer', 'km', 1000),
+    UnitItem('inch', '인치', 'Inch', 'in', 0.0254),
+    UnitItem('ft', '피트', 'Foot', 'ft', 0.3048),
+    UnitItem('yard', '야드', 'Yard', 'yd', 0.9144),
+    UnitItem('mile', '마일', 'Mile', 'mi', 1609.344),
   ],
 
   // Weight — base: g
   UnitCategory.weight: [
-    UnitItem('mg', '밀리그램', 'mg', 0.001),
-    UnitItem('g', '그램', 'g', 1),
-    UnitItem('kg', '킬로그램', 'kg', 1000),
-    UnitItem('ton', '톤', 't', 1000000),
-    UnitItem('oz', '온스', 'oz', 28.3495),
-    UnitItem('lb', '파운드', 'lb', 453.592),
-    UnitItem('geun', '근', '근', 600),
+    UnitItem('mg', '밀리그램', 'Milligram', 'mg', 0.001),
+    UnitItem('g', '그램', 'Gram', 'g', 1),
+    UnitItem('kg', '킬로그램', 'Kilogram', 'kg', 1000),
+    UnitItem('ton', '톤', 'Ton', 't', 1000000),
+    UnitItem('oz', '온스', 'Ounce', 'oz', 28.3495),
+    UnitItem('lb', '파운드', 'Pound', 'lb', 453.592),
+    UnitItem('geun', '근', 'Geun', '근', 600),
   ],
 
   // Area — base: m²
   UnitCategory.area: [
-    UnitItem('sqm', '제곱미터', '\u33A1', 1),
-    UnitItem('sqkm', '제곱킬로미터', '\u33A2', 1000000),
-    UnitItem('pyeong', '평', '평', 3.305785),
-    UnitItem('acre', '에이커', 'ac', 4046.8564),
-    UnitItem('ha', '헥타르', 'ha', 10000),
+    UnitItem('sqm', '제곱미터', 'Square Meter', '\u33A1', 1),
+    UnitItem('sqkm', '제곱킬로미터', 'Square Kilometer', '\u33A2', 1000000),
+    UnitItem('pyeong', '평', 'Pyeong', '평', 3.305785),
+    UnitItem('acre', '에이커', 'Acre', 'ac', 4046.8564),
+    UnitItem('ha', '헥타르', 'Hectare', 'ha', 10000),
   ],
 
   // Volume — base: mL
   UnitCategory.volume: [
-    UnitItem('mL', '밀리리터', 'mL', 1),
-    UnitItem('L', '리터', 'L', 1000),
-    UnitItem('cbm', '세제곱미터', '\u33A5', 1000000),
-    UnitItem('gallon', '갤런', 'gal', 3785.41),
-    UnitItem('fl_oz', '액량온스', 'fl oz', 29.5735),
-    UnitItem('cup', '컵', '컵', 200),
+    UnitItem('mL', '밀리리터', 'Milliliter', 'mL', 1),
+    UnitItem('L', '리터', 'Liter', 'L', 1000),
+    UnitItem('cbm', '세제곱미터', 'Cubic Meter', '\u33A5', 1000000),
+    UnitItem('gallon', '갤런', 'Gallon', 'gal', 3785.41),
+    UnitItem('fl_oz', '액량온스', 'Fluid Ounce', 'fl oz', 29.5735),
+    UnitItem('cup', '컵', 'Cup', '컵', 200),
   ],
 
   // Temperature — special handling (toBase not used)
   UnitCategory.temperature: [
-    UnitItem('C', '섭씨', '\u2103', 1),
-    UnitItem('F', '화씨', '\u2109', 1),
-    UnitItem('K', '켈빈', 'K', 1),
+    UnitItem('C', '섭씨', 'Celsius', '\u2103', 1),
+    UnitItem('F', '화씨', 'Fahrenheit', '\u2109', 1),
+    UnitItem('K', '켈빈', 'Kelvin', 'K', 1),
   ],
 
   // Speed — base: m/s
   UnitCategory.speed: [
-    UnitItem('ms', '미터/초', 'm/s', 1),
-    UnitItem('kmh', '킬로미터/시', 'km/h', 0.277778),
-    UnitItem('mph', '마일/시', 'mph', 0.44704),
-    UnitItem('knot', '노트', 'kn', 0.514444),
+    UnitItem('ms', '미터/초', 'Meters/sec', 'm/s', 1),
+    UnitItem('kmh', '킬로미터/시', 'Kilometers/hr', 'km/h', 0.277778),
+    UnitItem('mph', '마일/시', 'Miles/hr', 'mph', 0.44704),
+    UnitItem('knot', '노트', 'Knot', 'kn', 0.514444),
   ],
 };
 

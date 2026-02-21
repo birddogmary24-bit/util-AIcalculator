@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/result_display_card.dart';
 import 'period_provider.dart';
@@ -18,73 +20,83 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(periodProvider);
     final notifier = ref.read(periodProvider.notifier);
+    final region = ref.watch(regionProvider);
 
     return ToolScaffold(
-      title: '생리 계산기',
+      title: region == RegionMode.kr ? '생리 계산기' : 'Period Calculator',
       children: [
         // ── Last Period Date Picker ─────────────────────────────────────
-        _buildDatePickerCard(state, notifier),
+        _buildDatePickerCard(state, notifier, region),
         const SizedBox(height: 20),
 
         // ── Cycle Length Slider ─────────────────────────────────────────
         _buildSlider(
-          label: '평균 주기',
+          label: region == RegionMode.kr ? '평균 주기' : 'Avg. Cycle',
           value: state.cycleLength,
           min: 21,
           max: 40,
-          unit: '일',
+          unit: region == RegionMode.kr ? '일' : 'days',
           onChanged: (v) => notifier.setCycleLength(v.round()),
         ),
         const SizedBox(height: 16),
 
         // ── Period Duration Slider ──────────────────────────────────────
         _buildSlider(
-          label: '생리 기간',
+          label: region == RegionMode.kr ? '생리 기간' : 'Period Duration',
           value: state.periodDuration,
           min: 3,
           max: 7,
-          unit: '일',
+          unit: region == RegionMode.kr ? '일' : 'days',
           onChanged: (v) => notifier.setPeriodDuration(v.round()),
         ),
         const SizedBox(height: 24),
 
         // ── Results ────────────────────────────────────────────────────
         if (state.lastPeriodDate != null) ...[
-          _buildSectionTitle('예측 결과'),
+          _buildSectionTitle(
+              region == RegionMode.kr ? '예측 결과' : 'Prediction Results'),
           const SizedBox(height: 12),
-          _buildResultCards(state),
+          _buildResultCards(state, region),
           const SizedBox(height: 24),
 
           // ── Timeline ──────────────────────────────────────────────
-          _buildSectionTitle('다음 주기 타임라인'),
+          _buildSectionTitle(
+              region == RegionMode.kr ? '다음 주기 타임라인' : 'Next Cycle Timeline'),
           const SizedBox(height: 12),
-          _buildTimeline(state),
+          _buildTimeline(state, region),
           const SizedBox(height: 24),
 
           // ── Next 3 Periods ────────────────────────────────────────
-          _buildSectionTitle('향후 3회 예정일'),
+          _buildSectionTitle(
+              region == RegionMode.kr ? '향후 3회 예정일' : 'Next 3 Periods'),
           const SizedBox(height: 12),
-          _buildNextThreePeriods(state),
+          _buildNextThreePeriods(state, region),
         ],
       ],
     );
   }
 
-  Widget _buildDatePickerCard(PeriodState state, PeriodNotifier notifier) {
+  Widget _buildDatePickerCard(
+      PeriodState state, PeriodNotifier notifier, RegionMode region) {
     final cs = Theme.of(context).colorScheme;
     final hasDate = state.lastPeriodDate != null;
     String dateText;
     if (hasDate) {
-      final formatted =
-          DateFormat('yyyy년 M월 d일').format(state.lastPeriodDate!);
-      final weekday = _koreanWeekday(state.lastPeriodDate!.weekday);
-      dateText = '$formatted ($weekday)';
+      if (region == RegionMode.kr) {
+        final formatted =
+            DateFormat('yyyy년 M월 d일').format(state.lastPeriodDate!);
+        final weekday = _koreanWeekday(state.lastPeriodDate!.weekday);
+        dateText = '$formatted ($weekday)';
+      } else {
+        dateText =
+            DateFormat('MMM d, yyyy (E)').format(state.lastPeriodDate!);
+      }
     } else {
-      dateText = '날짜를 선택해주세요';
+      dateText = region == RegionMode.kr ? '날짜를 선택해주세요' : 'Select a date';
     }
 
     return GestureDetector(
-      onTap: () => _pickDate(notifier),
+      onTap: () => _pickDate(notifier, region),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -105,7 +117,9 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '마지막 생리 시작일',
+                    region == RegionMode.kr
+                        ? '마지막 생리 시작일'
+                        : 'Last Period Start Date',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -169,7 +183,7 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '$value$unit',
+                  '$value $unit',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -200,11 +214,11 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$min$unit',
+                '$min $unit',
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
               Text(
-                '$max$unit',
+                '$max $unit',
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ],
@@ -230,16 +244,18 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
     );
   }
 
-  Widget _buildResultCards(PeriodState state) {
-    final dateFormat = DateFormat('M월 d일');
+  Widget _buildResultCards(PeriodState state, RegionMode region) {
+    final dateFormat = region == RegionMode.kr
+        ? DateFormat('M월 d일')
+        : DateFormat('MMM d');
 
     return Column(
       children: [
         // Next period (red)
         ResultDisplayCard(
-          label: '다음 생리 예정일',
+          label: region == RegionMode.kr ? '다음 생리 예정일' : 'Next Expected Date',
           value: state.nextPeriodDate != null
-              ? _formatDateWithWeekday(state.nextPeriodDate!)
+              ? _formatDateWithWeekday(state.nextPeriodDate!, region)
               : '-',
           accentColor: const Color(0xFFE53E3E),
         ),
@@ -247,9 +263,9 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
 
         // Ovulation (blue)
         ResultDisplayCard(
-          label: '배란 예정일',
+          label: region == RegionMode.kr ? '배란 예정일' : 'Ovulation Date',
           value: state.ovulationDate != null
-              ? _formatDateWithWeekday(state.ovulationDate!)
+              ? _formatDateWithWeekday(state.ovulationDate!, region)
               : '-',
           accentColor: const Color(0xFF3182CE),
         ),
@@ -257,7 +273,7 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
 
         // Fertile window (pink)
         ResultDisplayCard(
-          label: '가임기',
+          label: region == RegionMode.kr ? '가임기' : 'Fertile Window',
           value: (state.fertileStart != null && state.fertileEnd != null)
               ? '${dateFormat.format(state.fertileStart!)} ~ ${dateFormat.format(state.fertileEnd!)}'
               : '-',
@@ -267,42 +283,42 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
     );
   }
 
-  Widget _buildTimeline(PeriodState state) {
+  Widget _buildTimeline(PeriodState state, RegionMode region) {
     final cs = Theme.of(context).colorScheme;
 
     if (state.lastPeriodDate == null) return const SizedBox.shrink();
 
     final items = <_TimelineItem>[
       _TimelineItem(
-        label: '생리 시작',
+        label: region == RegionMode.kr ? '생리 시작' : 'Period Start',
         date: state.lastPeriodDate!,
         color: const Color(0xFFE53E3E),
         icon: Icons.circle,
       ),
       if (state.fertileStart != null)
         _TimelineItem(
-          label: '가임기 시작',
+          label: region == RegionMode.kr ? '가임기 시작' : 'Fertile Start',
           date: state.fertileStart!,
           color: const Color(0xFFED64A6),
           icon: Icons.favorite,
         ),
       if (state.ovulationDate != null)
         _TimelineItem(
-          label: '배란일',
+          label: region == RegionMode.kr ? '배란일' : 'Ovulation',
           date: state.ovulationDate!,
           color: const Color(0xFF3182CE),
           icon: Icons.star,
         ),
       if (state.fertileEnd != null)
         _TimelineItem(
-          label: '가임기 종료',
+          label: region == RegionMode.kr ? '가임기 종료' : 'Fertile End',
           date: state.fertileEnd!,
           color: const Color(0xFFED64A6),
           icon: Icons.favorite_border,
         ),
       if (state.nextPeriodDate != null)
         _TimelineItem(
-          label: '다음 생리',
+          label: region == RegionMode.kr ? '다음 생리' : 'Next Period',
           date: state.nextPeriodDate!,
           color: const Color(0xFFE53E3E),
           icon: Icons.circle,
@@ -376,7 +392,7 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
     );
   }
 
-  Widget _buildNextThreePeriods(PeriodState state) {
+  Widget _buildNextThreePeriods(PeriodState state, RegionMode region) {
     if (state.nextThreePeriods.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -385,8 +401,10 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: ResultDisplayCard(
-            label: '${index + 1}회차',
-            value: _formatDateWithWeekday(date),
+            label: region == RegionMode.kr
+                ? '${index + 1}회차'
+                : 'Cycle ${index + 1}',
+            value: _formatDateWithWeekday(date, region),
             accentColor: const Color(0xFFE53E3E),
           ),
         );
@@ -394,24 +412,28 @@ class _PeriodScreenState extends ConsumerState<PeriodScreen> {
     );
   }
 
-  Future<void> _pickDate(PeriodNotifier notifier) async {
+  Future<void> _pickDate(PeriodNotifier notifier, RegionMode region) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: now,
       firstDate: DateTime(now.year - 1),
       lastDate: now,
-      locale: const Locale('ko'),
+      locale: region == RegionMode.kr ? const Locale('ko') : const Locale('en'),
     );
     if (picked != null) {
       notifier.setLastPeriodDate(picked);
     }
   }
 
-  String _formatDateWithWeekday(DateTime date) {
-    final formatted = DateFormat('yyyy년 M월 d일').format(date);
-    final weekday = _koreanWeekday(date.weekday);
-    return '$formatted ($weekday)';
+  String _formatDateWithWeekday(DateTime date, RegionMode region) {
+    if (region == RegionMode.kr) {
+      final formatted = DateFormat('yyyy년 M월 d일').format(date);
+      final weekday = _koreanWeekday(date.weekday);
+      return '$formatted ($weekday)';
+    } else {
+      return DateFormat('MMM d, yyyy (E)').format(date);
+    }
   }
 
   String _koreanWeekday(int weekday) {

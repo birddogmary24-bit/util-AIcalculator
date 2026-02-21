@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -37,27 +39,29 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(unitProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
     final units = unitData[state.category]!;
     final fromUnit = units.firstWhere((u) => u.id == state.fromUnitId);
     final toUnit = units.firstWhere((u) => u.id == state.toUnitId);
 
     return ToolScaffold(
-      title: '단위 계산기',
+      title: isKr ? '단위 계산기' : 'Unit Converter',
       children: [
         // ── Category chips ───────────────────────────────────────────────
-        _buildCategoryChips(state.category),
+        _buildCategoryChips(state.category, region),
 
         const SizedBox(height: 24),
 
         // ── From unit ────────────────────────────────────────────────────
         StyledDropdown<String>(
-          label: '변환할 단위',
+          label: isKr ? '변환할 단위' : 'From Unit',
           value: state.fromUnitId,
           items: units
               .map((u) => DropdownMenuItem<String>(
                     value: u.id,
                     child: Text(
-                      '${u.label} (${u.symbol})',
+                      '${u.label(region)} (${u.symbol})',
                       style: const TextStyle(fontSize: 18),
                     ),
                   ))
@@ -71,8 +75,8 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
 
         // ── Input value ──────────────────────────────────────────────────
         LabeledInputField(
-          label: '값 입력',
-          hint: '숫자를 입력하세요',
+          label: isKr ? '값 입력' : 'Enter Value',
+          hint: isKr ? '숫자를 입력하세요' : 'Enter a number',
           suffix: fromUnit.symbol,
           controller: _inputController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -105,7 +109,7 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
                     Icon(Icons.swap_vert, size: 28, color: cs.primary),
                     const SizedBox(width: 8),
                     Text(
-                      '단위 바꾸기',
+                      isKr ? '단위 바꾸기' : 'Swap Units',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -123,13 +127,13 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
 
         // ── To unit ──────────────────────────────────────────────────────
         StyledDropdown<String>(
-          label: '결과 단위',
+          label: isKr ? '결과 단위' : 'To Unit',
           value: state.toUnitId,
           items: units
               .map((u) => DropdownMenuItem<String>(
                     value: u.id,
                     child: Text(
-                      '${u.label} (${u.symbol})',
+                      '${u.label(region)} (${u.symbol})',
                       style: const TextStyle(fontSize: 18),
                     ),
                   ))
@@ -143,7 +147,7 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
 
         // ── Result display ───────────────────────────────────────────────
         ResultDisplayCard(
-          label: '변환 결과',
+          label: isKr ? '변환 결과' : 'Result',
           value: state.result != null ? _formatResult(state.result!) : '0',
           unit: toUnit.symbol,
           accentColor: cs.primary,
@@ -154,7 +158,7 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
 
   // ── Category chip bar ──────────────────────────────────────────────────────
 
-  Widget _buildCategoryChips(UnitCategory selected) {
+  Widget _buildCategoryChips(UnitCategory selected, RegionMode region) {
     return SizedBox(
       height: 48,
       child: ListView.separated(
@@ -166,7 +170,7 @@ class _UnitScreenState extends ConsumerState<UnitScreen> {
           final isSelected = cat == selected;
           return ChoiceChip(
             label: Text(
-              categoryLabels[cat]!,
+              categoryLabel(cat, region),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

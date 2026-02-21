@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/region.dart';
 import '../../../domain/services/exchange_rate_service.dart';
+import '../../../providers/region_provider.dart';
 
 enum RateType { standard, buy, sell }
 
-const currencyLabels = <String, String>{
+const currencyLabelsKr = <String, String>{
   'KRW': '원화(KRW)',
   'USD': '미국 달러(USD)',
   'EUR': '유로(EUR)',
@@ -11,6 +13,19 @@ const currencyLabels = <String, String>{
   'CNY': '중국 위안(CNY)',
   'GBP': '영국 파운드(GBP)',
 };
+
+const currencyLabelsEn = <String, String>{
+  'KRW': 'Korean Won(KRW)',
+  'USD': 'US Dollar(USD)',
+  'EUR': 'Euro(EUR)',
+  'JPY': 'Japanese Yen(JPY)',
+  'CNY': 'Chinese Yuan(CNY)',
+  'GBP': 'British Pound(GBP)',
+};
+
+Map<String, String> getCurrencyLabels(RegionMode region) {
+  return region == RegionMode.kr ? currencyLabelsKr : currencyLabelsEn;
+}
 
 class CurrencyState {
   final double amount;
@@ -69,8 +84,13 @@ class CurrencyState {
 
 class CurrencyNotifier extends StateNotifier<CurrencyState> {
   final ExchangeRateService _service;
+  final RegionMode _region;
 
-  CurrencyNotifier(this._service) : super(const CurrencyState());
+  CurrencyNotifier(this._service, this._region) : super(const CurrencyState());
+
+  String _errorMsg() => _region == RegionMode.kr
+      ? '환율 정보를 불러올 수 없습니다.'
+      : 'Unable to fetch exchange rates.';
 
   Future<void> fetchRates() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -81,7 +101,7 @@ class CurrencyNotifier extends StateNotifier<CurrencyState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: '환율 정보를 불러올 수 없습니다.',
+        error: _errorMsg(),
       );
     }
   }
@@ -151,5 +171,7 @@ class CurrencyNotifier extends StateNotifier<CurrencyState> {
 final currencyProvider =
     StateNotifierProvider<CurrencyNotifier, CurrencyState>((ref) {
   final service = ref.watch(exchangeRateServiceProvider);
-  return CurrencyNotifier(service);
+  final region = ref.watch(regionProvider);
+  return CurrencyNotifier(service, region);
 });
+

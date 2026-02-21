@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import 'world_clock_provider.dart';
 
 final _timeFmt = DateFormat('HH:mm:ss');
-final _dateFmt = DateFormat('yyyy년 MM월 dd일 (E)', 'ko');
+final _dateFmtKr = DateFormat('yyyy년 MM월 dd일 (E)', 'ko');
+final _dateFmtEn = DateFormat('MMM dd, yyyy (E)');
 
 class WorldClockScreen extends ConsumerStatefulWidget {
   const WorldClockScreen({super.key});
@@ -37,12 +40,14 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(worldClockProvider);
+    final region = ref.watch(regionProvider);
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
-        title: const Text('세계시간',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+            region == RegionMode.kr ? '세계시간' : 'World Clock',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         foregroundColor: cs.onSurface,
         elevation: 0,
@@ -52,7 +57,7 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
           IconButton(
             onPressed: _showAddCitySheet,
             icon: const Icon(Icons.add_circle_outline, size: 28),
-            tooltip: '도시 추가',
+            tooltip: region == RegionMode.kr ? '도시 추가' : 'Add City',
           ),
         ],
       ),
@@ -65,7 +70,9 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
                       color: cs.onSurfaceVariant.withAlpha(120)),
                   const SizedBox(height: 16),
                   Text(
-                    '도시를 추가해 주세요',
+                    region == RegionMode.kr
+                        ? '도시를 추가해 주세요'
+                        : 'Please add a city',
                     style: TextStyle(
                       fontSize: 18,
                       color: cs.onSurfaceVariant,
@@ -83,6 +90,7 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
                 if (city == null) return const SizedBox.shrink();
                 return _CityClockCard(
                   city: city,
+                  region: region,
                   onRemove: () {
                     ref
                         .read(worldClockProvider.notifier)
@@ -96,8 +104,9 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
         icon: const Icon(Icons.add),
-        label: const Text('도시 추가',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        label: Text(
+            region == RegionMode.kr ? '도시 추가' : 'Add City',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -105,13 +114,18 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
   void _showAddCitySheet() {
     final cs = Theme.of(context).colorScheme;
     final state = ref.read(worldClockProvider);
+    final region = ref.read(regionProvider);
     final available = state.availableCities;
 
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('모든 도시가 이미 추가되어 있습니다.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            region == RegionMode.kr
+                ? '모든 도시가 이미 추가되어 있습니다.'
+                : 'All cities have already been added.',
+          ),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -137,7 +151,7 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
                     Icon(Icons.public, color: sheetCs.primary, size: 24),
                     const SizedBox(width: 10),
                     Text(
-                      '도시 선택',
+                      region == RegionMode.kr ? '도시 선택' : 'Select City',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -158,7 +172,7 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
                       leading: Text(city.emoji,
                           style: const TextStyle(fontSize: 28)),
                       title: Text(
-                        city.name,
+                        city.displayName(region),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -166,7 +180,7 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        '${city.country}  ${city.diffFromSeoulText}',
+                        '${city.displayCountry(region)}  ${city.diffText(region)}',
                         style: TextStyle(
                           fontSize: 14,
                           color: sheetCs.onSurfaceVariant,
@@ -194,9 +208,14 @@ class _WorldClockScreenState extends ConsumerState<WorldClockScreen> {
 
 class _CityClockCard extends StatelessWidget {
   final CityInfo city;
+  final RegionMode region;
   final VoidCallback onRemove;
 
-  const _CityClockCard({required this.city, required this.onRemove});
+  const _CityClockCard({
+    required this.city,
+    required this.region,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -204,11 +223,14 @@ class _CityClockCard extends StatelessWidget {
     final now = city.currentTime;
     final timeStr = _timeFmt.format(now);
     String dateStr;
-    try {
-      dateStr = _dateFmt.format(now);
-    } catch (_) {
-      // Fallback if Korean locale not initialized
-      dateStr = DateFormat('yyyy-MM-dd (E)').format(now);
+    if (region == RegionMode.kr) {
+      try {
+        dateStr = _dateFmtKr.format(now);
+      } catch (_) {
+        dateStr = DateFormat('yyyy-MM-dd (E)').format(now);
+      }
+    } else {
+      dateStr = _dateFmtEn.format(now);
     }
 
     // Determine if it's daytime (06:00 - 18:00)
@@ -252,7 +274,7 @@ class _CityClockCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              city.name,
+                              city.displayName(region),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
@@ -260,7 +282,7 @@ class _CityClockCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              city.country,
+                              city.displayCountry(region),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: cs.onSurfaceVariant,
@@ -273,7 +295,7 @@ class _CityClockCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    city.diffFromSeoulText,
+                    city.diffText(region),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

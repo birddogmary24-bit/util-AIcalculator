@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
+import '../../../core/utils/thousands_input_formatter.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -32,16 +35,20 @@ class _DiscountScreenState extends ConsumerState<DiscountScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(discountProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : '\$';
 
     return ToolScaffold(
-      title: '할인 계산기',
+      title: isKr ? '할인 계산기' : 'Discount Calculator',
       children: [
-        // 원래 가격 입력
+        // Original price input
         LabeledInputField(
-          label: '원래 가격',
-          hint: '가격을 입력하세요',
-          suffix: '원',
+          label: isKr ? '원래 가격' : 'Original Price',
+          hint: isKr ? '가격을 입력하세요' : 'Enter price',
+          suffix: currencyUnit,
           controller: _priceController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(discountProvider.notifier).setOriginalPrice(parsed);
@@ -50,10 +57,10 @@ class _DiscountScreenState extends ConsumerState<DiscountScreen> {
 
         const SizedBox(height: 20),
 
-        // 할인율 입력
+        // Discount rate input
         LabeledInputField(
-          label: '할인율',
-          hint: '할인율을 입력하세요',
+          label: isKr ? '할인율' : 'Discount Rate',
+          hint: isKr ? '할인율을 입력하세요' : 'Enter discount rate',
           suffix: '%',
           controller: _percentController,
           onChanged: (v) {
@@ -64,7 +71,7 @@ class _DiscountScreenState extends ConsumerState<DiscountScreen> {
 
         const SizedBox(height: 12),
 
-        // 할인율 슬라이더
+        // Discount slider
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -72,7 +79,7 @@ class _DiscountScreenState extends ConsumerState<DiscountScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '슬라이더로 조절',
+                  isKr ? '슬라이더로 조절' : 'Adjust with slider',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -116,20 +123,20 @@ class _DiscountScreenState extends ConsumerState<DiscountScreen> {
 
         const SizedBox(height: 24),
 
-        // 결과 표시
+        // Results
         ResultDisplayCard(
-          label: '할인 금액',
+          label: isKr ? '할인 금액' : 'Discount Amount',
           value: _formatNumber(state.savedAmount),
-          unit: '원',
+          unit: currencyUnit,
           accentColor: cs.error,
         ),
 
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: '할인 후 가격',
+          label: isKr ? '할인 후 가격' : 'Final Price',
           value: _formatNumber(state.finalPrice),
-          unit: '원',
+          unit: currencyUnit,
           accentColor: cs.primary,
         ),
       ],

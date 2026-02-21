@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/calculator_engine.dart';
-import '../../core/utils/expression_evaluator.dart';
-import '../../domain/services/gemini_service.dart';
-import '../../domain/services/usage_limiter.dart';
 import '../../data/repositories/history_repository.dart';
+import '../../domain/services/gemini_service.dart';
 
 class DisplayLine {
   final String expression;
@@ -16,31 +14,31 @@ class DisplayLine {
 class CalculatorState {
   final String display;
   final String expression;
-  final bool isAiLoading;
   final int openParens;
   final List<DisplayLine> displayHistory;
+  final bool isAiLoading;
 
   const CalculatorState({
     this.display = '0',
     this.expression = '',
-    this.isAiLoading = false,
     this.openParens = 0,
     this.displayHistory = const [],
+    this.isAiLoading = false,
   });
 
   CalculatorState copyWith({
     String? display,
     String? expression,
-    bool? isAiLoading,
     int? openParens,
     List<DisplayLine>? displayHistory,
+    bool? isAiLoading,
   }) {
     return CalculatorState(
       display: display ?? this.display,
       expression: expression ?? this.expression,
-      isAiLoading: isAiLoading ?? this.isAiLoading,
       openParens: openParens ?? this.openParens,
       displayHistory: displayHistory ?? this.displayHistory,
+      isAiLoading: isAiLoading ?? this.isAiLoading,
     );
   }
 }
@@ -144,61 +142,29 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
   bool get isAllClear => _engine.isAllClearState;
 
   Future<void> parseNaturalLanguage(String input) async {
-    if (input.trim().isEmpty) return;
-
-    // 수식 패턴이면 Gemini 없이 자체 계산 (예: "35+3", "100*5", "(3+4)*2")
-    final directResult = ExpressionEvaluator.evaluate(input);
-    if (!directResult.isNaN) {
-      _engine.setResult(directResult, input);
-      final history = [...state.displayHistory];
-      history.add(DisplayLine(expression: input, result: _engine.display));
-      if (history.length > 10) history.removeAt(0);
-      state = state.copyWith(
-        display: _engine.display,
-        expression: input,
-        displayHistory: history,
-      );
-      _saveHistory(input, directResult, 'direct');
-      return;
-    }
-
     final service = _ref.read(geminiServiceProvider);
     if (service == null) return;
-
     state = state.copyWith(isAiLoading: true);
     try {
-      await _ref.read(usageLimiterProvider).checkAndIncrement();
       final result = await service.parseNaturalLanguage(input);
-
       if (result.isError) {
-        debugPrint('[CalculatorProvider] parseNaturalLanguage error: ${result.errorMessage}');
-        state = state.copyWith(display: '계산 오류', isAiLoading: false);
+        state = state.copyWith(isAiLoading: false);
         return;
       }
-
-      _engine.setResult(result.value, result.expression);
       final history = [...state.displayHistory];
-      history.add(DisplayLine(
-        expression: result.expression,
-        result: _engine.display,
-        isAi: true,
-      ));
+      history.add(DisplayLine(expression: input, result: result.value.toString(), isAi: true));
       if (history.length > 10) history.removeAt(0);
+      _engine.setResult(result.value, result.expression);
       state = state.copyWith(
         display: _engine.display,
         expression: result.expression,
         isAiLoading: false,
         displayHistory: history,
       );
-      _saveHistory(result.expression, result.value, 'nlp');
-    } on LimitExceededException {
-      state = state.copyWith(
-        display: 'AI 한도 초과',
-        isAiLoading: false,
-      );
+      _saveHistory(result.expression, result.value, 'ai');
     } catch (e, st) {
-      debugPrint('[CalculatorProvider] parseNaturalLanguage exception: $e\n$st');
-      state = state.copyWith(display: '계산 오류', isAiLoading: false);
+      debugPrint('[CalculatorProvider] parseNaturalLanguage error: $e\n$st');
+      state = state.copyWith(isAiLoading: false);
     }
   }
 

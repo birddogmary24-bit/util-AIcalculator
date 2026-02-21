@@ -108,7 +108,7 @@ class ExpressionEvaluator {
             stack.add(a * b);
           case '/':
           case '÷':
-            stack.add(b == 0 ? double.infinity : a / b);
+            stack.add(b == 0 ? double.nan : a / b);
         }
       }
     }

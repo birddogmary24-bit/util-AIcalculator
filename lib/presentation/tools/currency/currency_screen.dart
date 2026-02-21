@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/thousands_input_formatter.dart';
+
+import '../../../core/constants/region.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -40,15 +44,18 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(currencyProvider);
+    final region = ref.watch(regionProvider);
+    final labels = getCurrencyLabels(region);
 
     return ToolScaffold(
-      title: '환율 계산기',
+      title: region == RegionMode.kr ? '환율 계산기' : 'Exchange Calculator',
       children: [
         // --- Amount Input ---
         LabeledInputField(
-          label: '금액',
-          hint: '금액을 입력하세요',
+          label: region == RegionMode.kr ? '금액' : 'Amount',
+          hint: region == RegionMode.kr ? '금액을 입력하세요' : 'Enter amount',
           controller: _amountController,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
             final parsed = double.tryParse(v.replaceAll(',', '')) ?? 0;
             ref.read(currencyProvider.notifier).setAmount(parsed);
@@ -64,9 +71,9 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
             // From currency
             Expanded(
               child: StyledDropdown<String>(
-                label: '보내는 통화',
+                label: region == RegionMode.kr ? '보내는 통화' : 'From',
                 value: state.fromCurrency,
-                items: currencyLabels.entries
+                items: labels.entries
                     .map((e) => DropdownMenuItem(
                           value: e.key,
                           child: Text(e.value,
@@ -103,9 +110,9 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
             // To currency
             Expanded(
               child: StyledDropdown<String>(
-                label: '받는 통화',
+                label: region == RegionMode.kr ? '받는 통화' : 'To',
                 value: state.toCurrency,
-                items: currencyLabels.entries
+                items: labels.entries
                     .map((e) => DropdownMenuItem(
                           value: e.key,
                           child: Text(e.value,
@@ -129,7 +136,7 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '환율 종류',
+              region == RegionMode.kr ? '환율 종류' : 'Rate Type',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -140,18 +147,27 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<RateType>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: RateType.standard,
-                    label: Text('매매기준율', style: TextStyle(fontSize: 14)),
+                    label: Text(
+                      region == RegionMode.kr ? '매매기준율' : 'Standard',
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   ),
                   ButtonSegment(
                     value: RateType.buy,
-                    label: Text('살 때', style: TextStyle(fontSize: 14)),
+                    label: Text(
+                      region == RegionMode.kr ? '살 때' : 'Buy',
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   ),
                   ButtonSegment(
                     value: RateType.sell,
-                    label: Text('팔 때', style: TextStyle(fontSize: 14)),
+                    label: Text(
+                      region == RegionMode.kr ? '팔 때' : 'Sell',
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   ),
                 ],
                 selected: {state.rateType},
@@ -211,7 +227,7 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
         if (state.result != null && !state.isLoading) ...[
           ResultDisplayCard(
             label:
-                '${currencyLabels[state.fromCurrency] ?? state.fromCurrency} → ${currencyLabels[state.toCurrency] ?? state.toCurrency}',
+                '${labels[state.fromCurrency] ?? state.fromCurrency} → ${labels[state.toCurrency] ?? state.toCurrency}',
             value: _fmt.format(state.result!),
             unit: state.toCurrency,
             accentColor: cs.primary,
@@ -233,7 +249,7 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '적용 환율',
+                        region == RegionMode.kr ? '적용 환율' : 'Applied Rate',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -256,7 +272,7 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '기준 시각',
+                          region == RegionMode.kr ? '기준 시각' : 'Last Updated',
                           style: TextStyle(
                             fontSize: 13,
                             color: cs.onSurfaceVariant,

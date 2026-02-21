@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+import '../../../domain/services/notification_service.dart';
 
 // ── Model ──────────────────────────────────────────────────────────────────
 
@@ -112,6 +115,11 @@ class BirthdayNotifier extends StateNotifier<BirthdayState> {
         .map((e) => BirthdayEntry.fromJson(e as Map<String, dynamic>))
         .toList();
     state = state.copyWith(entries: list, isLoading: false);
+
+    // Reschedule all notifications on load (no-op on web)
+    if (!kIsWeb) {
+      NotificationService.rescheduleAll(list);
+    }
   }
 
   Future<void> _save() async {
@@ -135,12 +143,20 @@ class BirthdayNotifier extends StateNotifier<BirthdayState> {
     );
     state = state.copyWith(entries: [...state.entries, entry]);
     await _save();
+
+    if (!kIsWeb) {
+      await NotificationService.scheduleBirthdayNotifications(entry);
+    }
   }
 
   Future<void> removeEntry(String id) async {
     final updated = state.entries.where((e) => e.id != id).toList();
     state = state.copyWith(entries: updated);
     await _save();
+
+    if (!kIsWeb) {
+      await NotificationService.cancelBirthdayNotifications(id);
+    }
   }
 }
 

@@ -6,7 +6,7 @@ class AppColors {
   // ── DT-522 Physical Calculator Palette ───────────────────────────────
 
   // Calculator button colors
-  static const Color numBtn     = Color(0xFFDADCE2); // Bright gray number keys
+  static const Color numBtn     = Color(0xFFCDD0D8); // Slightly darker gray number keys
   static const Color funcBtn    = Color(0xFFB4BFE0); // Bright blue function keys (+/-, %, ()
   static const Color clearBtn   = Color(0xFFE07800); // Deeper orange C/AC key
   static const Color operatorBtn = Color(0xFF2A2832); // Dark charcoal operator keys
@@ -26,7 +26,7 @@ class AppColors {
   static const Color lcdCursor  = Color(0xFF2A3C18); // Blinking cursor color
 
   // ── App Body ─────────────────────────────────────────────────────────
-  static const Color bodyBg     = Color(0xFFBEC2C8); // Silver calculator body
+  static const Color bodyBg     = Color(0xFFDEE0E4); // Light silver calculator body
   static const Color bodyDark   = Color(0xFF9EA2A8); // Slightly darker for depth
   static const Color appBarBg   = Color(0xFF4A5882); // Indigo blue app bar
 
@@ -51,7 +51,7 @@ class AppColors {
   static const Color error   = Color(0xFFFF3B30);
 
   // Neutral
-  static const Color background   = Color(0xFFBEC2C8);
+  static const Color background   = Color(0xFFDEE0E4);
   static const Color darkBackground = Color(0xFF000000);
   static const Color surface      = Color(0xFFD0D4DA);
   static const Color darkSurface  = Color(0xFF1C1C1E);

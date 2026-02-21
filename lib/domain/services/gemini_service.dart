@@ -1,154 +1,166 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../core/constants/region.dart';
 import '../../providers/config_provider.dart';
+import '../../providers/region_provider.dart';
 
 class NlpCalcResult {
   final String expression;
   final double value;
-  final String explanation;
+  final bool isError;
+  final String? errorMessage;
 
   const NlpCalcResult({
     required this.expression,
     required this.value,
-    required this.explanation,
+    this.isError = false,
+    this.errorMessage,
   });
 }
 
 class GeminiService {
-  final GenerativeModel _model;
   final GenerativeModel _jsonModel;
-
   final GenerativeModel _chatModel;
+  final RegionMode _region;
 
-  GeminiService(String apiKey)
-      : _model = GenerativeModel(
-          model: 'gemini-2.0-flash',
-          apiKey: apiKey,
-        ),
-        _jsonModel = GenerativeModel(
-          model: 'gemini-2.0-flash',
+  GeminiService(String apiKey, this._region)
+      : _jsonModel = GenerativeModel(
+          model: 'gemini-2.0-flash-lite',
           apiKey: apiKey,
           generationConfig: GenerationConfig(
-            responseMimeType: 'application/json',
+            maxOutputTokens: 200,
           ),
         ),
         _chatModel = GenerativeModel(
           model: 'gemini-2.0-flash',
           apiKey: apiKey,
+          generationConfig: GenerationConfig(
+            maxOutputTokens: 80,
+          ),
           systemInstruction: Content.system(
-            '당신은 친절한 한국어 계산 도우미입니다. 계산 관련 질문에 명확하고 간결하게 답하며, 결과는 한국 원화 형식(콤마 포함)으로 표시하세요.',
+            _region == RegionMode.kr
+                ? '당신은 친절한 한국어 계산 도우미입니다. 계산 관련 질문에 명확하고 간결하게 답하며, 결과는 한국 원화 형식(콤마 포함)으로 표시하세요.'
+                : 'You are a helpful calculator assistant. Answer calculation questions clearly and concisely. Format numbers with commas.',
           ),
         );
 
-  Future<String> _callText(String prompt) async {
-    final response = await _model.generateContent([Content.text(prompt)]);
-    return response.text?.trim() ?? '';
-  }
-
   Future<String> _callJson(String prompt) async {
     final response = await _jsonModel.generateContent([Content.text(prompt)]);
-    return response.text?.trim() ?? '{}';
+    final text = response.text?.trim() ?? '{}';
+    debugPrint('[GeminiService] _callJson response: $text');
+    return text;
   }
 
-  /// 자연어 입력 계산: "15만원의 10%" → {expression, result, explanation}
+  /// Natural language calculation
   Future<NlpCalcResult> parseNaturalLanguage(String input) async {
-    final prompt = '''
+    final prompt = _region == RegionMode.kr
+        ? '''
 사용자의 한국어 계산 요청을 분석하여 JSON으로만 응답하세요.
 
 입력: "$input"
 
 응답 형식 (JSON만, 다른 텍스트 없이):
-{"expression": "계산식 예: 150000 * 0.10", "result": 15000, "explanation": "한국어 설명 20자 이내"}
+{"expression": "계산식 예: 150000 * 0.10", "result": 15000}
+
+중요: result는 반드시 숫자(number)로 반환하세요. 문자열이 아닌 숫자입니다.
+'''
+        : '''
+Analyze the user's calculation request and respond in JSON only.
+
+Input: "$input"
+
+Response format (JSON only, no other text):
+{"expression": "e.g. 150000 * 0.10", "result": 15000}
+
+Important: result must be a number, not a string.
 ''';
     try {
       final raw = await _callJson(prompt);
       final json = _parseJson(raw);
+      debugPrint('[GeminiService] parseNaturalLanguage parsed json: $json');
+      if (json == null || json['result'] == null) {
+        return NlpCalcResult(
+          expression: input,
+          value: 0,
+          isError: true,
+          errorMessage: 'Failed to parse AI response: raw=$raw',
+        );
+      }
       return NlpCalcResult(
         expression: json['expression'] as String? ?? input,
-        value: (json['result'] as num?)?.toDouble() ?? 0,
-        explanation: json['explanation'] as String? ?? '',
+        value: _toDouble(json['result']),
       );
-    } catch (_) {
-      return NlpCalcResult(expression: input, value: 0, explanation: '');
+    } catch (e, st) {
+      debugPrint('[GeminiService] parseNaturalLanguage exception: $e\n$st');
+      return NlpCalcResult(
+        expression: input,
+        value: 0,
+        isError: true,
+        errorMessage: e.toString(),
+      );
     }
   }
 
-  /// 맥락 해석: "75000 ÷ 3 = 25000" → "회식비 분담이네요"
-  Future<String> interpretContext(String expression, double result) async {
-    final prompt = '''
-계산: "$expression = $result"
-이 계산의 맥락을 한국어로 한 줄 팁으로 설명하세요.
-가능한 맥락: 할인, 식비/회식 분담, 세금, 급여, 대출, 쇼핑
-20자 이내, 친절하게. 계산식 반복 없이 맥락만.
-텍스트만 반환.
-''';
-    return _callText(prompt);
-  }
-
-  /// AI 레이블 생성: 히스토리용 짧은 레이블
-  Future<String> generateLabel(String expression, double result) async {
-    final prompt = '''
-계산: "$expression = $result"
-이 계산에 어울리는 한국어 레이블을 6자 이내로 작성.
-예: 회식 분담, 할인 계산, 세금 계산
-따옴표 없이 텍스트만 반환.
-''';
-    final label = await _callText(prompt);
-    return label.replaceAll('"', '').replaceAll("'", '').trim();
-  }
-
-  /// AI 채팅: 멀티턴 대화
+  /// Multi-turn chat — 최근 3쌍(6개)만 참조
   Future<String> chat(List<Map<String, String>> messages) async {
-    final history = messages
-        .where((m) => m['role'] != 'user' || messages.indexOf(m) < messages.length - 1)
+    // indexOf 대신 lastIndexWhere + sublist 패턴으로 안전하게 처리
+    final lastUserIndex = messages.lastIndexWhere((m) => m['role'] == 'user');
+    if (lastUserIndex < 0) {
+      return _region == RegionMode.kr ? '질문을 입력해주세요.' : 'Please enter a question.';
+    }
+
+    final lastUserMsg = messages[lastUserIndex]['content'] ?? '';
+    final historyMessages = messages.sublist(0, lastUserIndex);
+
+    // 최근 6개(3쌍)만 히스토리로 사용
+    final recentHistory = historyMessages.length > 6
+        ? historyMessages.sublist(historyMessages.length - 6)
+        : historyMessages;
+
+    final history = recentHistory
         .map((m) => Content(
               m['role'] == 'user' ? 'user' : 'model',
               [TextPart(m['content'] ?? '')],
             ))
         .toList();
 
-    final lastUserMsg = messages.lastWhere(
-      (m) => m['role'] == 'user',
-      orElse: () => {'role': 'user', 'content': ''},
-    )['content'] ?? '';
-
-    final chat = _chatModel.startChat(
+    final chatSession = _chatModel.startChat(
       history: history.isEmpty ? null : history,
     );
 
-    final response = await chat.sendMessage(Content.text(lastUserMsg));
-    return response.text?.trim() ?? '응답을 받지 못했습니다.';
+    final response = await chatSession.sendMessage(Content.text(lastUserMsg));
+    final fallback = _region == RegionMode.kr ? '응답을 받지 못했습니다.' : 'No response received.';
+    return response.text?.trim() ?? fallback;
   }
 
-  Map<String, dynamic> _parseJson(String raw) {
-    // Strip markdown code blocks if present
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  Map<String, dynamic>? _parseJson(String raw) {
     var text = raw.trim();
     if (text.startsWith('```')) {
       text = text.replaceAll(RegExp(r'```json?\n?'), '').replaceAll('```', '').trim();
     }
-    // Simple JSON parse using dart:convert via jsonDecode
-    return _jsonDecode(text);
-  }
-
-  Map<String, dynamic> _jsonDecode(String text) {
-    // Use the dart:convert via a helper to avoid import conflict
-    final result = <String, dynamic>{};
     try {
-      // Find key-value pairs in {"key": value} format
-      final exprMatch = RegExp(r'"expression"\s*:\s*"([^"]+)"').firstMatch(text);
-      final resultMatch = RegExp(r'"result"\s*:\s*([\d.]+)').firstMatch(text);
-      final explainMatch = RegExp(r'"explanation"\s*:\s*"([^"]+)"').firstMatch(text);
-      if (exprMatch != null) result['expression'] = exprMatch.group(1);
-      if (resultMatch != null) result['result'] = double.tryParse(resultMatch.group(1)!);
-      if (explainMatch != null) result['explanation'] = explainMatch.group(1);
-    } catch (_) {}
-    return result;
+      final decoded = jsonDecode(text);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
 final geminiServiceProvider = Provider<GeminiService?>((ref) {
   final keyState = ref.watch(apiKeyNotifierProvider);
   final key = keyState.valueOrNull;
+  final region = ref.watch(regionProvider);
   if (key == null || key.isEmpty) return null;
-  return GeminiService(key);
+  return GeminiService(key, region);
 });

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/region.dart';
+
 enum Gender { male, female }
 
 class BmiState {
@@ -8,7 +10,7 @@ class BmiState {
   final Gender gender;
   final double age;
   final double bmi;
-  final String category;
+  final String categoryKey; // internal key: underweight, normal, overweight, obese1, obese2, morbid
   final double bmr;
 
   const BmiState({
@@ -17,7 +19,7 @@ class BmiState {
     this.gender = Gender.male,
     this.age = 0,
     this.bmi = 0,
-    this.category = '',
+    this.categoryKey = '',
     this.bmr = 0,
   });
 
@@ -27,7 +29,7 @@ class BmiState {
     Gender? gender,
     double? age,
     double? bmi,
-    String? category,
+    String? categoryKey,
     double? bmr,
   }) {
     return BmiState(
@@ -36,10 +38,34 @@ class BmiState {
       gender: gender ?? this.gender,
       age: age ?? this.age,
       bmi: bmi ?? this.bmi,
-      category: category ?? this.category,
+      categoryKey: categoryKey ?? this.categoryKey,
       bmr: bmr ?? this.bmr,
     );
   }
+
+  /// Get localized category label
+  String categoryLabel(RegionMode region) {
+    return _categoryLabels[region]?[categoryKey] ?? '';
+  }
+
+  static const Map<RegionMode, Map<String, String>> _categoryLabels = {
+    RegionMode.kr: {
+      'underweight': '저체중',
+      'normal': '정상',
+      'overweight': '과체중',
+      'obese1': '비만 1단계',
+      'obese2': '비만 2단계',
+      'morbid': '고도비만',
+    },
+    RegionMode.global: {
+      'underweight': 'Underweight',
+      'normal': 'Normal',
+      'overweight': 'Overweight',
+      'obese1': 'Obese I',
+      'obese2': 'Obese II',
+      'morbid': 'Morbidly Obese',
+    },
+  };
 }
 
 class BmiNotifier extends StateNotifier<BmiState> {
@@ -71,7 +97,7 @@ class BmiNotifier extends StateNotifier<BmiState> {
     final a = state.age;
 
     if (h <= 0 || w <= 0) {
-      state = state.copyWith(bmi: 0, category: '', bmr: 0);
+      state = state.copyWith(bmi: 0, categoryKey: '', bmr: 0);
       return;
     }
 
@@ -79,20 +105,20 @@ class BmiNotifier extends StateNotifier<BmiState> {
     final heightM = h / 100.0;
     final bmi = w / (heightM * heightM);
 
-    // Korean BMI categories
-    String category;
+    // BMI category keys (Korean thresholds)
+    String categoryKey;
     if (bmi < 18.5) {
-      category = '저체중';
+      categoryKey = 'underweight';
     } else if (bmi < 23.0) {
-      category = '정상';
+      categoryKey = 'normal';
     } else if (bmi < 25.0) {
-      category = '과체중';
+      categoryKey = 'overweight';
     } else if (bmi < 30.0) {
-      category = '비만 1단계';
+      categoryKey = 'obese1';
     } else if (bmi < 35.0) {
-      category = '비만 2단계';
+      categoryKey = 'obese2';
     } else {
-      category = '고도비만';
+      categoryKey = 'morbid';
     }
 
     // BMR (Harris-Benedict)
@@ -107,7 +133,7 @@ class BmiNotifier extends StateNotifier<BmiState> {
 
     state = state.copyWith(
       bmi: bmi,
-      category: category,
+      categoryKey: categoryKey,
       bmr: bmr > 0 ? bmr : 0,
     );
   }
