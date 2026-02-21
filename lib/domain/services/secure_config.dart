@@ -7,17 +7,28 @@ class SecureConfig {
 
   static const _apiKeyKey = 'claude_api_key';
 
+  // Injected at build time via --dart-define-from-file=.env
+  static const _envApiKey = String.fromEnvironment('GEMINI_API_KEY');
+
   // flutter_secure_storage is not ideal for web; fall back to SharedPreferences on web
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
   static Future<String?> getApiKey() async {
+    // 1. User-saved key takes priority
+    String? saved;
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_apiKeyKey);
+      saved = prefs.getString(_apiKeyKey);
+    } else {
+      saved = await _storage.read(key: _apiKeyKey);
     }
-    return _storage.read(key: _apiKeyKey);
+    if (saved != null && saved.isNotEmpty) return saved;
+
+    // 2. Fall back to compile-time .env key (dev convenience)
+    if (_envApiKey.isNotEmpty) return _envApiKey;
+    return null;
   }
 
   static Future<void> setApiKey(String key) async {
