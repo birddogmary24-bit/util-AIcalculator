@@ -8,7 +8,7 @@ Flutter (iOS + Android + **Web 우선**).
 - Flutter 3.27.x + Dart ^3.6.2
 - Riverpod 2.6.x (StateNotifier — 코드 생성 미사용)
 - go_router 14.8.x (ShellRoute 3탭)
-- Claude Haiku API (claude-haiku-4-5) — AI 기능 전담
+- Gemini API (gemini-2.0-flash) — AI 기능 전담
 - flutter_secure_storage / SharedPreferences — API 키 보관
 - History: 메모리 기반 (Drift DB로 추후 교체 예정)
 
@@ -22,15 +22,14 @@ lib/
   providers/     — Riverpod 프로바이더 (theme, config)
 ```
 
-## AI 기능 (claude_service.dart)
+## AI 기능 (gemini_service.dart)
 1. `parseNaturalLanguage(input)` — 자연어 → 계산 결과
-2. `interpretContext(expr, result)` — 맥락 팁 (20자 이내 한국어)
-3. `generateLabel(expr, result)` — 히스토리 레이블 (6자 이내)
-4. `chat(messages)` — AI 채팅 탭 멀티턴 대화
+2. `chat(messages)` — AI 채팅 탭 멀티턴 대화
 
 ## API 키 설정
-- 앱 실행 후 계산기 탭 우상단 🔑 아이콘 → API 키 입력
-- 웹: SharedPreferences, 모바일: Keychain/Keystore
+- `.env` 파일에 `GEMINI_API_KEY=...` 저장 (git 제외, 개발 편의용)
+- 앱 실행 후 계산기 탭 우상단 🔑 아이콘 → UI에서 직접 입력도 가능
+- 우선순위: UI 입력 키 > `.env` 키
 
 ## 개발 규칙
 - **main 브랜치에 직접 commit/push 금지**
@@ -41,12 +40,18 @@ lib/
 
 ## 실행
 ```bash
-# 웹
-flutter run -d chrome
+# 웹 개발 서버 (API 키 자동 주입 — 반드시 이 명령 사용)
+bash run_dev.sh
+
+# 직접 실행 시 API 키가 초기화되므로 금지
+# flutter run -d chrome  ← 사용 금지
 
 # 빌드
-flutter build web
+flutter build web --dart-define-from-file=.env
 ```
+
+> **주의**: `flutter run -d chrome`을 직접 실행하면 `.env`의 API 키가 주입되지 않아
+> 매번 UI에서 API 키를 다시 입력해야 합니다. 항상 `bash run_dev.sh` 사용.
 
 ## 향후 개선 예정
 - [ ] Drift SQLite DB 교체 (현재 메모리 기반)
