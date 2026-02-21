@@ -1,7 +1,7 @@
 name: util_ai_calculator
 description: "AI 계산기 - 자연어 계산, 영수증 인식, 맥락 해석 기능을 갖춘 스마트 계산기"
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: ^3.6.2

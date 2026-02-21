@@ -34,7 +34,7 @@ class ButtonGrid extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        const gap = 10.0;
+        const gap = 5.0;
         final btnSize = (totalWidth - gap * 3) / 4;
 
         return Column(
@@ -51,8 +51,8 @@ class ButtonGrid extends ConsumerWidget {
             // Main button grid
             ...List.generate(layout.length, (rowIdx) {
               final row = layout[rowIdx];
-              // First row (AC, +/-, %, ÷) is 10% shorter
-              final rowBtnHeight = rowIdx == 0 ? btnSize * 0.675 : btnSize * 0.75;
+              // First row (AC, +/-, %, ÷) is 10% shorter; rows 1-4 get taller to absorb freed bottom space
+              final rowBtnHeight = rowIdx == 0 ? btnSize * 0.675 : btnSize * 0.82;
               final buttons = List.generate(row.length, (colIdx) {
                 final btnId = row[colIdx];
                 return _buildButton(
@@ -75,17 +75,6 @@ class ButtonGrid extends ConsumerWidget {
                 child: _buildRow(btnSize, rowBtnHeight, gap, buttons),
               );
             }),
-            // Ad placeholder (60% of button height)
-            SizedBox(height: gap),
-            Container(
-              height: btnSize * 0.75 * 0.6,
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF252830)
-                    : const Color(0xFFDEE0E4),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
           ],
         );
       },

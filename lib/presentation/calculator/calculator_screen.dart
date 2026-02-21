@@ -199,7 +199,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             // Display area — expands to fill remaining space
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -227,7 +227,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
 
             // Button grid
             const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: EdgeInsets.fromLTRB(8, 0, 8, 4),
               child: ButtonGrid(),
             ),
           ],

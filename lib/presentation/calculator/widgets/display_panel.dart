@@ -120,7 +120,9 @@ class _DisplayPanelState extends State<DisplayPanel>
     if (text.length <= 6) return 52;
     if (text.length <= 9) return 42;
     if (text.length <= 12) return 34;
-    return 26;
+    if (text.length <= 16) return 26;
+    if (text.length <= 20) return 22;
+    return 18;
   }
 
   @override
@@ -240,162 +242,176 @@ class _DisplayPanelState extends State<DisplayPanel>
                       ),
                     ),
 
-                  // ── Bottom row: [AI][Mic] left | [Copy] [Number][Cursor] right ──
+                  // ── Bottom row: [Mic/AI column] | [Copy + Number/Cursor] ──
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // AI button (leftmost)
-                      GestureDetector(
-                        onTap: widget.onAiTap,
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            gradient: widget.onAiTap != null
-                                ? const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFF7986CB),
-                                      Color(0xFF3F51B5),
-                                      Color(0xFF283593),
-                                    ],
-                                    stops: [0.0, 0.5, 1.0],
-                                  )
-                                : null,
-                            color: widget.onAiTap == null
-                                ? AppColors.expressionText.withAlpha(50)
-                                : null,
-                            shape: BoxShape.circle,
-                            boxShadow: widget.onAiTap != null
-                                ? [
-                                    const BoxShadow(
-                                      color: Color(0x66FFFFFF),
-                                      blurRadius: 3,
-                                      offset: Offset(-1, -1),
-                                    ),
-                                    const BoxShadow(
-                                      color: Color(0xAA283593),
-                                      blurRadius: 8,
-                                      offset: Offset(2, 3),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'AI',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Mic button (right of AI)
-                      if (widget.speechAvailable) ...[
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: widget.onMicTap,
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              gradient: !widget.isListening && widget.onMicTap != null
-                                  ? const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF7986CB),
-                                        Color(0xFF3F51B5),
-                                        Color(0xFF283593),
-                                      ],
-                                      stops: [0.0, 0.5, 1.0],
-                                    )
-                                  : null,
-                              color: widget.isListening
-                                  ? AppColors.error
-                                  : (widget.onMicTap == null
-                                      ? AppColors.expressionText.withAlpha(50)
-                                      : null),
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Icon(
-                              widget.isListening
-                                  ? Icons.stop_rounded
-                                  : Icons.mic_rounded,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                          ),
-                        ),
-                      ],
-                      // Spacer pushes the right side to the end
-                      const Spacer(),
-                      // Copy button (just left of number)
-                      _CopyButton(
-                        text: formatted,
-                        copyLabel: widget.copyLabel,
-                        copiedLabel: widget.copiedLabel,
-                      ),
-                      const SizedBox(width: 32),
-                      if (_isCurrentResultAi)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6),
-                          child: _AiBadge(large: true),
-                        ),
-                      if (widget.isAiLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.5,
-                              color: Color(0xFF8A9AB2),
-                            ),
-                          ),
-                        ),
-                      // Number + cursor (rightmost)
-                      Row(
+                      // Left column: Mic (top) + AI (bottom)
+                      Column(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 200),
-                            child: Text(
-                              formatted,
-                              style: TextStyle(
-                                color: AppColors.lcdText,
-                                fontSize: fs,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -1,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          if (_isIdle)
-                            FadeTransition(
-                              opacity: _cursorAnim,
+                          // Mic button (above AI)
+                          if (widget.speechAvailable) ...[
+                            GestureDetector(
+                              onTap: widget.onMicTap,
                               child: Container(
-                                width: 3,
-                                height: fs * 0.65,
-                                margin: const EdgeInsets.only(left: 4),
+                                width: 40,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  color: AppColors.lcdCursor,
-                                  borderRadius: BorderRadius.circular(1),
+                                  gradient: !widget.isListening && widget.onMicTap != null
+                                      ? const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF7986CB),
+                                            Color(0xFF3F51B5),
+                                            Color(0xFF283593),
+                                          ],
+                                          stops: [0.0, 0.5, 1.0],
+                                        )
+                                      : null,
+                                  color: widget.isListening
+                                      ? AppColors.error
+                                      : (widget.onMicTap == null
+                                          ? AppColors.expressionText.withAlpha(50)
+                                          : null),
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  widget.isListening
+                                      ? Icons.stop_rounded
+                                      : Icons.mic_rounded,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 4),
+                          ],
+                          // AI button (bottommost)
+                          GestureDetector(
+                            onTap: widget.onAiTap,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                gradient: widget.onAiTap != null
+                                    ? const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF7986CB),
+                                          Color(0xFF3F51B5),
+                                          Color(0xFF283593),
+                                        ],
+                                        stops: [0.0, 0.5, 1.0],
+                                      )
+                                    : null,
+                                color: widget.onAiTap == null
+                                    ? AppColors.expressionText.withAlpha(50)
+                                    : null,
+                                shape: BoxShape.circle,
+                                boxShadow: widget.onAiTap != null
+                                    ? [
+                                        const BoxShadow(
+                                          color: Color(0x66FFFFFF),
+                                          blurRadius: 3,
+                                          offset: Offset(-1, -1),
+                                        ),
+                                        const BoxShadow(
+                                          color: Color(0xAA283593),
+                                          blurRadius: 8,
+                                          offset: Offset(2, 3),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'AI',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
+                      ),
+                      // Right side: Copy + Number/Cursor — fills remaining width
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Copy button
+                            _CopyButton(
+                              text: formatted,
+                              copyLabel: widget.copyLabel,
+                              copiedLabel: widget.copiedLabel,
+                            ),
+                            const SizedBox(width: 8),
+                            if (_isCurrentResultAi)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 4),
+                                child: _AiBadge(large: true),
+                              ),
+                            if (widget.isAiLoading)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 6),
+                                child: SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: Color(0xFF8A9AB2),
+                                  ),
+                                ),
+                              ),
+                            // Number + cursor — flexible so it shrinks if needed
+                            Flexible(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      formatted,
+                                      style: TextStyle(
+                                        color: AppColors.lcdText,
+                                        fontSize: fs,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -1,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                  if (_isIdle)
+                                    FadeTransition(
+                                      opacity: _cursorAnim,
+                                      child: Container(
+                                        width: 3,
+                                        height: fs * 0.65,
+                                        margin: const EdgeInsets.only(left: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lcdCursor,
+                                          borderRadius: BorderRadius.circular(1),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
