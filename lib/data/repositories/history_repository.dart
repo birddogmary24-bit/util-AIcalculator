@@ -1,78 +1,65 @@
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../local/app_database.dart';
+import '../local/database_provider.dart';
 
-/// In-memory history repository.
-/// Drift DB로 교체될 예정 — 현재는 웹에서 바로 실행되도록 메모리 기반으로 구현.
-class HistoryEntry {
-  final int id;
-  final String expression;
-  final double result;
-  final String source;
-  String? aiLabel;
-  final DateTime createdAt;
+// Re-export Drift-generated HistoryEntry so UI/providers keep the same import.
+export '../local/app_database.dart' show HistoryEntry;
 
-  HistoryEntry({
-    required this.id,
-    required this.expression,
-    required this.result,
-    required this.source,
-    this.aiLabel,
-    required this.createdAt,
-  });
+// Extension: createdAt getter used by history_screen.dart
+extension HistoryEntryDate on HistoryEntry {
+  DateTime get createdAt =>
+      DateTime.fromMillisecondsSinceEpoch(createdAtMs);
 }
 
 class HistoryRepository {
-  final List<HistoryEntry> _entries = [];
-  int _nextId = 1;
+  final AppDatabase _db;
 
-  List<HistoryEntry> get all =>
-      List.unmodifiable(_entries.reversed.toList());
+  HistoryRepository(this._db);
 
-  void save({
+  Future<List<HistoryEntry>> get all async {
+    return (_db.select(_db.historyEntries)
+          ..orderBy([(t) => OrderingTerm.desc(t.id)]))
+        .get();
+  }
+
+  Future<void> save({
     required String expression,
     required double result,
     required String source,
-  }) {
-    _entries.add(HistoryEntry(
-      id: _nextId++,
-      expression: expression,
-      result: result,
-      source: source,
-      createdAt: DateTime.now(),
-    ));
+  }) async {
+    await _db.into(_db.historyEntries).insert(HistoryEntriesCompanion.insert(
+          expression: expression,
+          result: result,
+          source: source,
+          createdAtMs: DateTime.now().millisecondsSinceEpoch,
+        ));
   }
 
-  Future<void> updateLatestLabel(String label) async {
-    if (_entries.isEmpty) return;
-    _entries.last.aiLabel = label;
+  Future<void> delete(int id) async {
+    await (_db.delete(_db.historyEntries)
+          ..where((t) => t.id.equals(id)))
+        .go();
   }
 
-  Future<void> updateLabel(int id, String label) async {
-    final idx = _entries.indexWhere((e) => e.id == id);
-    if (idx != -1) _entries[idx].aiLabel = label;
+  Future<void> clearAll() async {
+    await _db.delete(_db.historyEntries).go();
   }
 
-  void delete(int id) {
-    _entries.removeWhere((e) => e.id == id);
-  }
-
-  void clearAll() {
-    _entries.clear();
-  }
-
-  List<HistoryEntry> search(String query) {
+  Future<List<HistoryEntry>> search(String query) async {
     if (query.isEmpty) return all;
     final q = query.toLowerCase();
-    return _entries.reversed
+    final entries = await all;
+    return entries
         .where((e) =>
             e.expression.toLowerCase().contains(q) ||
-            (e.aiLabel?.toLowerCase().contains(q) ?? false) ||
             e.result.toString().contains(q))
         .toList();
   }
 }
 
 final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
-  return HistoryRepository();
+  return HistoryRepository(ref.watch(appDatabaseProvider));
 });
 
 // Notifier so UI can reactively update when history changes
@@ -84,21 +71,23 @@ final historyNotifierProvider =
 class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
   final HistoryRepository _repo;
 
-  HistoryNotifier(this._repo) : super([]);
-
-  void refresh() {
-    state = List.from(_repo.all);
-  }
-
-  void delete(int id) {
-    _repo.delete(id);
+  HistoryNotifier(this._repo) : super([]) {
     refresh();
   }
 
-  void clearAll() {
-    _repo.clearAll();
+  Future<void> refresh() async {
+    state = await _repo.all;
+  }
+
+  Future<void> delete(int id) async {
+    await _repo.delete(id);
+    await refresh();
+  }
+
+  Future<void> clearAll() async {
+    await _repo.clearAll();
     state = [];
   }
 
-  List<HistoryEntry> search(String query) => _repo.search(query);
+  Future<List<HistoryEntry>> search(String query) => _repo.search(query);
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/constants/region.dart';
 import '../../core/theme/colors.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../data/repositories/history_repository.dart';
+import '../../providers/region_provider.dart';
 import '../calculator/calculator_provider.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,43 +26,55 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     super.dispose();
   }
 
-  String _formatDate(DateTime dt) {
+  String _formatDate(DateTime dt, RegionMode region, Map<String, String> s) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final date = DateTime(dt.year, dt.month, dt.day);
-    if (date == today) return '오늘';
-    if (date == today.subtract(const Duration(days: 1))) return '어제';
-    return DateFormat('M월 d일', 'ko').format(dt);
+    if (date == today) return s['today']!;
+    if (date == today.subtract(const Duration(days: 1))) return s['yesterday']!;
+    return region == RegionMode.kr
+        ? DateFormat('M월 d일', 'ko').format(dt)
+        : DateFormat('MMM d', 'en').format(dt);
   }
 
-  String _formatTime(DateTime dt) => DateFormat('a h:mm', 'ko').format(dt);
+  String _formatTime(DateTime dt, RegionMode region) {
+    return region == RegionMode.kr
+        ? DateFormat('a h:mm', 'ko').format(dt)
+        : DateFormat('h:mm a', 'en').format(dt);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final historyNotifier = ref.watch(historyNotifierProvider.notifier);
+    final region = ref.watch(regionProvider);
+    final s = AppStrings.of(region);
+    final allHistory = ref.watch(historyNotifierProvider);
     final allEntries = _query.isEmpty
-        ? ref.watch(historyNotifierProvider)
-        : historyNotifier.search(_query);
+        ? allHistory
+        : allHistory
+            .where((e) =>
+                e.expression.toLowerCase().contains(_query.toLowerCase()) ||
+                e.result.toString().contains(_query))
+            .toList();
 
     // Group by date
     final Map<String, List<HistoryEntry>> grouped = {};
     for (final entry in allEntries) {
-      final key = _formatDate(entry.createdAt);
+      final key = _formatDate(entry.createdAt, region, s);
       grouped.putIfAbsent(key, () => []).add(entry);
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '계산 기록',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          s['calc_history']!,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           if (allEntries.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep_outlined),
-              tooltip: '전체 삭제',
-              onPressed: () => _confirmClearAll(context),
+              tooltip: s['delete_all']!,
+              onPressed: () => _confirmClearAll(context, s),
             ),
         ],
       ),
@@ -73,7 +87,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               controller: _searchController,
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
-                hintText: '기록 검색 (레이블, 숫자)',
+                hintText: s['search_hint']!,
                 hintStyle: const TextStyle(
                   color: AppColors.expressionText,
                   fontSize: 14,
@@ -100,7 +114,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // List
           Expanded(
             child: allEntries.isEmpty
-                ? _EmptyState(hasQuery: _query.isNotEmpty)
+                ? _EmptyState(
+                    hasQuery: _query.isNotEmpty,
+                    noResultsText: s['no_results']!,
+                    noHistoryText: s['no_history']!,
+                    autoSaveHintText: s['auto_save_hint']!,
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
@@ -124,7 +143,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ),
                           ...entries.map((e) => _HistoryTile(
                                 entry: e,
-                                formatTime: _formatTime,
+                                formatTime: (dt) =>
+                                    _formatTime(dt, region),
                                 onTap: () {
                                   ref
                                       .read(calculatorProvider.notifier)
@@ -146,16 +166,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  void _confirmClearAll(BuildContext context) {
+  void _confirmClearAll(BuildContext context, Map<String, String> s) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('전체 삭제'),
-        content: const Text('모든 계산 기록을 삭제할까요?'),
+        title: Text(s['confirm_delete_all_title']!),
+        content: Text(s['confirm_delete_all']!),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(s['cancel']!),
           ),
           FilledButton(
             onPressed: () {
@@ -164,7 +184,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             },
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.error),
-            child: const Text('삭제'),
+            child: Text(s['delete']!),
           ),
         ],
       ),
@@ -238,15 +258,6 @@ class _HistoryTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (entry.aiLabel != null)
-                      Text(
-                        entry.aiLabel!,
-                        style: TextStyle(
-                          color: _sourceColor(entry.source),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     Text(
                       entry.expression.isNotEmpty
                           ? entry.expression
@@ -320,7 +331,16 @@ class _HistoryTile extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final bool hasQuery;
-  const _EmptyState({required this.hasQuery});
+  final String noResultsText;
+  final String noHistoryText;
+  final String autoSaveHintText;
+
+  const _EmptyState({
+    required this.hasQuery,
+    required this.noResultsText,
+    required this.noHistoryText,
+    required this.autoSaveHintText,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -335,7 +355,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            hasQuery ? '검색 결과가 없습니다' : '아직 계산 기록이 없습니다',
+            hasQuery ? noResultsText : noHistoryText,
             style: const TextStyle(
               color: AppColors.expressionText,
               fontSize: 16,
@@ -343,10 +363,10 @@ class _EmptyState extends StatelessWidget {
           ),
           if (!hasQuery) ...[
             const SizedBox(height: 8),
-            const Text(
-              '계산기 탭에서 계산하면\n자동으로 저장됩니다',
+            Text(
+              autoSaveHintText,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.expressionText,
                 fontSize: 14,
               ),
