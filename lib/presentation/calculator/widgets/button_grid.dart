@@ -34,7 +34,7 @@ class ButtonGrid extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        const gap = 5.0;
+        const gap = 10.0;
         final btnSize = (totalWidth - gap * 3) / 4;
 
         return Column(
@@ -75,6 +75,8 @@ class ButtonGrid extends ConsumerWidget {
                 child: _buildRow(btnSize, rowBtnHeight, gap, buttons),
               );
             }),
+            // Bottom breathing room: ~30% of number button height
+            SizedBox(height: btnSize * 0.82 * 0.3),
           ],
         );
       },
