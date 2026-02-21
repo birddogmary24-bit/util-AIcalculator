@@ -10,7 +10,7 @@ Flutter (iOS + Android + **Web 우선**).
 - go_router 14.8.x (ShellRoute 3탭)
 - Gemini API (gemini-2.0-flash) — AI 기능 전담
 - flutter_secure_storage / SharedPreferences — API 키 보관
-- History: 메모리 기반 (Drift DB로 추후 교체 예정)
+- History: **Drift SQLite** (웹: IndexedDB/WasmDatabase, 네이티브: SQLite 파일)
 
 ## 폴더 구조 요약
 ```
@@ -54,7 +54,5 @@ flutter build web --dart-define-from-file=.env
 > 매번 UI에서 API 키를 다시 입력해야 합니다. 항상 `bash run_dev.sh` 사용.
 
 ## 향후 개선 예정
-- [ ] Drift SQLite DB 교체 (현재 메모리 기반)
-- [ ] web/index.html sql.js wasm 연동
-- [ ] 영수증 OCR (모바일 전용, ML Kit + Claude)
+- [ ] 영수증 OCR (모바일 전용, ML Kit + Gemini)
 - [ ] GitHub Actions CI/CD
