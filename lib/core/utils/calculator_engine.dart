@@ -109,7 +109,13 @@ class CalculatorEngine {
   // ── Calculate ─────────────────────────────────────────────────────────
 
   void calculate() {
-    if (_tokens.isEmpty) return;
+    // 토큰이 없으면 현재 입력값을 그대로 확정 (빈 수식 = 버튼 피드백)
+    if (_tokens.isEmpty) {
+      _savedExpression = _currentInput;
+      _justCalculated = true;
+      _justPressedOp = false;
+      return;
+    }
 
     // Build final token list for evaluation
     final evalTokens = List<String>.from(_tokens);
@@ -138,6 +144,8 @@ class CalculatorEngine {
   }
 
   void toggleSign() {
+    // 에러 상태나 숫자가 아닌 값에서는 무시
+    if (double.tryParse(_currentInput) == null) return;
     if (_currentInput.startsWith('-')) {
       _currentInput = _currentInput.substring(1);
     } else if (_currentInput != '0') {
@@ -201,13 +209,18 @@ class CalculatorEngine {
   }
 
   String _formatResult(double n) {
-    if (n.isInfinite) return '계산 오류';
-    if (n.isNaN) return '0';
+    if (n.isInfinite || n.isNaN) return '계산 오류';
     if (n == n.truncateToDouble()) return n.toInt().toString();
-    final s = n.toString();
+    // 소수점 10자리로 반올림하여 부동소수점 오류 제거 (0.1+0.2=0.3)
+    final rounded = double.parse(n.toStringAsFixed(10));
+    if (rounded == rounded.truncateToDouble()) return rounded.toInt().toString();
+    final s = rounded.toString();
     if (s.length > 12) {
-      return n
-          .toStringAsFixed(8)
+      // 유효숫자 10자리로 표현 (trailing zero 제거)
+      final precise = rounded.toStringAsPrecision(10);
+      // scientific notation 포함 여부 처리
+      if (precise.contains('e') || precise.contains('E')) return precise;
+      return precise
           .replaceAll(RegExp(r'0+$'), '')
           .replaceAll(RegExp(r'\.$'), '');
     }

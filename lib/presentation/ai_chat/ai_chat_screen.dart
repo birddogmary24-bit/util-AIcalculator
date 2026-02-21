@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/region.dart';
 import '../../core/theme/colors.dart';
 import '../../domain/services/gemini_service.dart';
+import '../../domain/services/usage_limiter.dart';
 import '../../providers/config_provider.dart';
+import '../../providers/region_provider.dart';
 import '../calculator/calculator_provider.dart';
 
 // --- State ---
@@ -11,11 +15,13 @@ class ChatMessage {
   final String role; // 'user' | 'assistant'
   final String content;
   final DateTime time;
+  final bool isSystem;
 
   const ChatMessage({
     required this.role,
     required this.content,
     required this.time,
+    this.isSystem = false,
   });
 }
 
@@ -36,16 +42,22 @@ class AiChatState {
 class AiChatNotifier extends StateNotifier<AiChatState> {
   final Ref _ref;
 
-  AiChatNotifier(this._ref) : super(_initialState());
+  AiChatNotifier(this._ref) : super(const AiChatState()) {
+    _initWelcome();
+  }
 
-  static AiChatState _initialState() => AiChatState(messages: [
-        ChatMessage(
-          role: 'assistant',
-          content:
-              '안녕하세요! AI 계산 도우미입니다.\n\n계산에 관한 무엇이든 물어보세요.\n예: "15만원짜리 물건을 30% 할인하면 얼마야?"',
-          time: DateTime(2000),
-        ),
-      ]);
+  void _initWelcome() {
+    final region = _ref.read(regionProvider);
+    final s = AppStrings.of(region);
+    state = AiChatState(messages: [
+      ChatMessage(
+        role: 'assistant',
+        content: s['chat_welcome']!,
+        time: DateTime.now(),
+        isSystem: true,
+      ),
+    ]);
+  }
 
   Future<void> send(String input) async {
     if (input.trim().isEmpty) return;
@@ -63,8 +75,10 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
     );
 
     try {
+      await _ref.read(usageLimiterProvider).checkAndIncrement();
+
       final history = state.messages
-          .where((m) => m.time.year != 2000)
+          .where((m) => !m.isSystem)
           .map((m) => {'role': m.role, 'content': m.content})
           .toList();
 
@@ -78,10 +92,24 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
         messages: [...state.messages, aiMsg],
         isLoading: false,
       );
-    } catch (e) {
+    } on LimitExceededException {
+      final region = _ref.read(regionProvider);
+      final s = AppStrings.of(region);
       final errMsg = ChatMessage(
         role: 'assistant',
-        content: '죄송해요, 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        content: s['ai_limit_reached']!,
+        time: DateTime.now(),
+      );
+      state = state.copyWith(
+        messages: [...state.messages, errMsg],
+        isLoading: false,
+      );
+    } catch (e) {
+      final region = _ref.read(regionProvider);
+      final s = AppStrings.of(region);
+      final errMsg = ChatMessage(
+        role: 'assistant',
+        content: s['chat_error']!,
         time: DateTime.now(),
       );
       state = state.copyWith(
@@ -92,11 +120,14 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
   }
 
   void clear() {
+    final region = _ref.read(regionProvider);
+    final s = AppStrings.of(region);
     state = AiChatState(messages: [
       ChatMessage(
         role: 'assistant',
-        content: '대화가 초기화되었습니다. 새로운 계산 질문을 해보세요!',
-        time: DateTime(2000),
+        content: s['chat_reset_msg']!,
+        time: DateTime.now(),
+        isSystem: true,
       ),
     ]);
   }
@@ -147,6 +178,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(ref.watch(regionProvider));
     final chatState = ref.watch(aiChatProvider);
     final apiKey = ref.watch(apiKeyNotifierProvider).valueOrNull;
     final hasKey = apiKey != null && apiKey.isNotEmpty;
@@ -162,22 +194,22 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'AI 도우미',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          s['ai_assistant']!,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           if (chatState.messages.length > 1)
             IconButton(
               icon: const Icon(Icons.refresh_outlined),
               onPressed: () => ref.read(aiChatProvider.notifier).clear(),
-              tooltip: '대화 초기화',
+              tooltip: s['reset_chat']!,
             ),
         ],
       ),
       body: Column(
         children: [
-          if (!hasKey) _apiKeyBanner(context),
+          if (!hasKey) _apiKeyBanner(context, s),
 
           Expanded(
             child: ListView.builder(
@@ -190,7 +222,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   return _TypingIndicator();
                 }
                 final msg = chatState.messages[index];
-                return _ChatBubble(message: msg);
+                return _ChatBubble(
+                  message: msg,
+                  toCalculatorText: s['to_calculator']!,
+                );
               },
             ),
           ),
@@ -200,13 +235,15 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             controller: _controller,
             enabled: hasKey && !chatState.isLoading,
             onSend: _send,
+            hintEnabled: s['chat_input_hint']!,
+            hintDisabled: s['set_api_first']!,
           ),
         ],
       ),
     );
   }
 
-  Widget _apiKeyBanner(BuildContext context) {
+  Widget _apiKeyBanner(BuildContext context, Map<String, String> s) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -215,16 +252,16 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         children: [
           const Icon(Icons.key_outlined, size: 16, color: AppColors.aiTipAccent),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'AI 기능을 사용하려면 계산기 탭에서 API 키를 설정하세요',
-              style: TextStyle(fontSize: 13, color: AppColors.aiTipAccent),
+              s['api_key_banner']!,
+              style: const TextStyle(fontSize: 13, color: AppColors.aiTipAccent),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: const Text('설정하기', style: TextStyle(fontSize: 13)),
+            child: Text(s['go_settings']!, style: const TextStyle(fontSize: 13)),
           ),
         ],
       ),
@@ -234,8 +271,12 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
 class _ChatBubble extends ConsumerWidget {
   final ChatMessage message;
+  final String toCalculatorText;
 
-  const _ChatBubble({required this.message});
+  const _ChatBubble({
+    required this.message,
+    required this.toCalculatorText,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -304,11 +345,15 @@ class _ChatBubble extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // "계산기로 보내기" button for AI messages with numbers
+                // "To Calculator" button for AI messages with numbers
                 if (!isUser && _hasNumber(message.content))
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: _SendToCalcButton(content: message.content, ref: ref),
+                    child: _SendToCalcButton(
+                      content: message.content,
+                      ref: ref,
+                      label: toCalculatorText,
+                    ),
                   ),
               ],
             ),
@@ -327,8 +372,13 @@ class _ChatBubble extends ConsumerWidget {
 class _SendToCalcButton extends StatelessWidget {
   final String content;
   final WidgetRef ref;
+  final String label;
 
-  const _SendToCalcButton({required this.content, required this.ref});
+  const _SendToCalcButton({
+    required this.content,
+    required this.ref,
+    required this.label,
+  });
 
   double? _extractLastNumber(String text) {
     final matches = RegExp(r'[\d,]+\.?\d*').allMatches(text);
@@ -353,14 +403,14 @@ class _SendToCalcButton extends StatelessWidget {
           border: Border.all(color: AppColors.primary.withAlpha(80)),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.calculate_outlined, size: 14, color: AppColors.primary),
-            SizedBox(width: 6),
+            const Icon(Icons.calculate_outlined, size: 14, color: AppColors.primary),
+            const SizedBox(width: 6),
             Text(
-              '계산기로',
-              style: TextStyle(fontSize: 13, color: AppColors.primary),
+              label,
+              style: const TextStyle(fontSize: 13, color: AppColors.primary),
             ),
           ],
         ),
@@ -470,11 +520,15 @@ class _ChatInputBar extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final VoidCallback onSend;
+  final String hintEnabled;
+  final String hintDisabled;
 
   const _ChatInputBar({
     required this.controller,
     required this.enabled,
     required this.onSend,
+    required this.hintEnabled,
+    required this.hintDisabled,
   });
 
   @override
@@ -500,11 +554,11 @@ class _ChatInputBar extends StatelessWidget {
                 enabled: enabled,
                 onSubmitted: (_) => onSend(),
                 maxLines: null,
+                maxLength: 200,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 keyboardType: TextInputType.multiline,
                 decoration: InputDecoration(
-                  hintText: enabled
-                      ? '계산 질문을 입력하세요...'
-                      : 'API 키를 먼저 설정하세요',
+                  hintText: enabled ? hintEnabled : hintDisabled,
                   hintStyle: const TextStyle(
                     color: AppColors.expressionText,
                     fontSize: 14,
@@ -515,6 +569,7 @@ class _ChatInputBar extends StatelessWidget {
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                   isDense: true,
+                  counterText: '',
                 ),
               ),
             ),

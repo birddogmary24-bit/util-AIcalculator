@@ -36,7 +36,7 @@ class DiscountNotifier extends StateNotifier<DiscountState> {
   }
 
   void setDiscountPercent(double v) {
-    state = state.copyWith(discountPercent: v);
+    state = state.copyWith(discountPercent: v.clamp(0, 100));
     _calculate();
   }
 

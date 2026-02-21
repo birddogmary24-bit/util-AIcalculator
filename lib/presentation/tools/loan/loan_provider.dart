@@ -95,13 +95,40 @@ class LoanNotifier extends StateNotifier<LoanState> {
     final rate = state.annualRate;
     final n = state.periodMonths;
 
-    if (p <= 0 || rate <= 0 || n <= 0) {
+    if (p <= 0 || n <= 0) {
       state = state.copyWith(
         monthlyPayment: 0,
         totalInterest: 0,
         totalRepayment: 0,
         lastMonthPayment: 0,
         schedule: [],
+      );
+      return;
+    }
+
+    // 0% 무이자 대출: 원금 균등 분할
+    if (rate == 0) {
+      final monthly = p / n;
+      final schedule = <LoanScheduleEntry>[];
+      final limit = n < 12 ? n : 12;
+      double remaining = p;
+      for (int i = 1; i <= limit; i++) {
+        remaining -= monthly;
+        if (remaining < 0) remaining = 0;
+        schedule.add(LoanScheduleEntry(
+          month: i,
+          payment: monthly,
+          principalPortion: monthly,
+          interestPortion: 0,
+          remainingBalance: remaining,
+        ));
+      }
+      state = state.copyWith(
+        monthlyPayment: monthly,
+        totalInterest: 0,
+        totalRepayment: p,
+        lastMonthPayment: monthly,
+        schedule: schedule,
       );
       return;
     }
