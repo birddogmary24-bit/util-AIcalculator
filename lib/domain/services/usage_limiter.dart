@@ -8,8 +8,8 @@ class LimitExceededException implements Exception {
 
 class UsageLimiter {
   static const _key = 'ai_daily_usage';
-  // 테스트 기간: 100회 / 프로덕션: 5회로 변경
-  static const kDailyLimit = 100;
+  // 서버 제한(50회)과 일치 — 선제적 UX용 (서버 왕복 절약)
+  static const kDailyLimit = 50;
 
   Future<int> getCount() async {
     final prefs = await SharedPreferences.getInstance();
