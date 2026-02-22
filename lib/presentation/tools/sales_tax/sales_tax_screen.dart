@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
 import '../../../core/utils/thousands_input_formatter.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -33,6 +35,9 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(salesTaxProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : '\$';
 
     // Sync rate text field when preset is selected
     ref.listen<SalesTaxState>(salesTaxProvider, (prev, next) {
@@ -43,13 +48,13 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
     });
 
     return ToolScaffold(
-      title: 'Sales Tax Calculator',
+      title: isKr ? '판매세 계산기' : 'Sales Tax Calculator',
       children: [
         // Price input
         LabeledInputField(
-          label: 'Price',
-          hint: 'Enter price',
-          suffix: '\$',
+          label: isKr ? '가격' : 'Price',
+          hint: isKr ? '가격을 입력하세요' : 'Enter price',
+          suffix: currencyUnit,
           controller: _priceController,
           inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
@@ -65,7 +70,7 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'State Tax Presets',
+              isKr ? '주요 세율' : 'State Tax Presets',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -111,8 +116,8 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
 
         // Custom tax rate
         LabeledInputField(
-          label: 'Tax Rate',
-          hint: 'Enter custom tax rate',
+          label: isKr ? '세율' : 'Tax Rate',
+          hint: isKr ? '세율을 입력하세요' : 'Enter custom tax rate',
           suffix: '%',
           controller: _rateController,
           onChanged: (v) {
@@ -131,7 +136,7 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Adjust with Slider',
+                  isKr ? '슬라이더로 조절' : 'Adjust with Slider',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -180,18 +185,18 @@ class _SalesTaxScreenState extends ConsumerState<SalesTaxScreen> {
 
         // Results
         ResultDisplayCard(
-          label: 'Tax Amount',
+          label: isKr ? '세금' : 'Tax Amount',
           value: _formatNumber(state.taxAmount),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.error,
         ),
 
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: 'Total Price',
+          label: isKr ? '총 가격' : 'Total Price',
           value: _formatNumber(state.totalPrice),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.primary,
         ),
       ],

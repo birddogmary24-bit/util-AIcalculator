@@ -66,3 +66,6 @@ web/drift_worker.js.deps
 # Service account keys
 *-service-account*.json
 service-account*.json
+
+# Firebase
+.firebase/
