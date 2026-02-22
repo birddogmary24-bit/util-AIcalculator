@@ -27,7 +27,7 @@ jobs:
       - run: flutter analyze
 
   build-web:
-    name: Build Web
+    name: Build & Deploy Web
     runs-on: ubuntu-latest
     needs: analyze
     steps:
@@ -49,6 +49,15 @@ jobs:
           flutter build web \
             --dart-define=PROXY_BASE_URL=${{ secrets.PROXY_BASE_URL }} \
             --dart-define=PROXY_APP_TOKEN=${{ secrets.PROXY_APP_TOKEN }}
+
+      - name: Deploy to Firebase Hosting
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: ai-calculator-proxy
 
   build-apk:
     name: Build APK

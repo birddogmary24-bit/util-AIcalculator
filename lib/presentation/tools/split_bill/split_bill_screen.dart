@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
 import '../../../core/utils/thousands_input_formatter.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -32,15 +34,18 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(splitBillProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : '\$';
 
     return ToolScaffold(
-      title: 'Split Bill',
+      title: isKr ? '더치페이' : 'Split Bill',
       children: [
         // Total amount input
         LabeledInputField(
-          label: 'Total Amount',
-          hint: 'Enter total bill amount',
-          suffix: '\$',
+          label: isKr ? '총 금액' : 'Total Amount',
+          hint: isKr ? '총 금액을 입력하세요' : 'Enter total bill amount',
+          suffix: currencyUnit,
           controller: _totalController,
           inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
@@ -56,7 +61,7 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Number of People',
+              isKr ? '인원수' : 'Number of People',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -109,7 +114,9 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${state.peopleCount} ${state.peopleCount == 1 ? 'person' : 'people'}',
+                  isKr
+                      ? '${state.peopleCount}명'
+                      : '${state.peopleCount} ${state.peopleCount == 1 ? 'person' : 'people'}',
                   style: TextStyle(
                     fontSize: 13,
                     color: cs.onSurfaceVariant,
@@ -124,9 +131,9 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
 
         // Equal split result
         ResultDisplayCard(
-          label: 'Per Person (Equal Split)',
+          label: isKr ? '1인당 (균등)' : 'Per Person (Equal Split)',
           value: _formatNumber(state.basePerPerson),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.primary,
         ),
 
@@ -158,7 +165,7 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Per-Person Adjustments',
+                          isKr ? '개인별 조정' : 'Per-Person Adjustments',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -206,8 +213,10 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          'Add or subtract from each person\'s share. '
-                          'Differences are redistributed equally among others.',
+                          isKr
+                              ? '각 사람의 금액을 조정하세요. 차액은 나머지 인원에게 균등 분배됩니다.'
+                              : 'Add or subtract from each person\'s share. '
+                                  'Differences are redistributed equally among others.',
                           style: TextStyle(
                             fontSize: 12,
                             color: cs.onSurfaceVariant.withAlpha(180),
@@ -224,6 +233,8 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
                           index: i,
                           adjustment: adj,
                           finalAmount: adjustedAmount,
+                          currencyUnit: currencyUnit,
+                          isKr: isKr,
                           onChanged: (val) {
                             ref
                                 .read(splitBillProvider.notifier)
@@ -241,7 +252,7 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
                             icon: Icon(Icons.clear_all,
                                 size: 18, color: cs.error),
                             label: Text(
-                              'Clear All Adjustments',
+                              isKr ? '조정 초기화' : 'Clear All Adjustments',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: cs.error,
@@ -261,7 +272,7 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
         if (state.adjustments.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(
-            'Adjusted Amounts',
+            isKr ? '조정된 금액' : 'Adjusted Amounts',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -278,9 +289,11 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: ResultDisplayCard(
-                label: 'Person ${i + 1}${hasAdj ? ' (adjusted)' : ''}',
+                label: isKr
+                    ? '${i + 1}번${hasAdj ? ' (조정됨)' : ''}'
+                    : 'Person ${i + 1}${hasAdj ? ' (adjusted)' : ''}',
                 value: _formatNumber(amount),
-                unit: '\$',
+                unit: currencyUnit,
                 accentColor: hasAdj ? cs.tertiary : cs.secondary,
               ),
             );
@@ -330,12 +343,16 @@ class _PersonAdjustmentRow extends StatefulWidget {
   final int index;
   final double adjustment;
   final double finalAmount;
+  final String currencyUnit;
+  final bool isKr;
   final ValueChanged<double> onChanged;
 
   const _PersonAdjustmentRow({
     required this.index,
     required this.adjustment,
     required this.finalAmount,
+    required this.currencyUnit,
+    required this.isKr,
     required this.onChanged,
   });
 
@@ -383,7 +400,7 @@ class _PersonAdjustmentRowState extends State<_PersonAdjustmentRow> {
           SizedBox(
             width: 72,
             child: Text(
-              'Person ${widget.index + 1}',
+              widget.isKr ? '${widget.index + 1}번' : 'Person ${widget.index + 1}',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -402,12 +419,12 @@ class _PersonAdjustmentRowState extends State<_PersonAdjustmentRow> {
                 color: cs.onSurface,
               ),
               decoration: InputDecoration(
-                hintText: '+/- adjustment',
+                hintText: widget.isKr ? '+/- 조정액' : '+/- adjustment',
                 hintStyle: TextStyle(
                   fontSize: 13,
                   color: cs.onSurfaceVariant.withAlpha(100),
                 ),
-                prefixText: '\$ ',
+                prefixText: '${widget.currencyUnit} ',
                 prefixStyle: TextStyle(
                   fontSize: 14,
                   color: cs.onSurfaceVariant,
@@ -432,7 +449,7 @@ class _PersonAdjustmentRowState extends State<_PersonAdjustmentRow> {
           SizedBox(
             width: 70,
             child: Text(
-              '\$${_formatNumber(widget.finalAmount)}',
+              '${widget.currencyUnit}${_formatNumber(widget.finalAmount)}',
               textAlign: TextAlign.right,
               style: TextStyle(
                 fontSize: 14,

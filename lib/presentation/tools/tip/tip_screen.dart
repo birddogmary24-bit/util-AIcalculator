@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/region.dart';
 import '../../../core/utils/thousands_input_formatter.dart';
+import '../../../providers/region_provider.dart';
 import '../../common/widgets/tool_scaffold.dart';
 import '../../common/widgets/labeled_input_field.dart';
 import '../../common/widgets/result_display_card.dart';
@@ -33,15 +35,18 @@ class _TipScreenState extends ConsumerState<TipScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final state = ref.watch(tipProvider);
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+    final currencyUnit = isKr ? '원' : '\$';
 
     return ToolScaffold(
-      title: 'Tip Calculator',
+      title: isKr ? '팁 계산기' : 'Tip Calculator',
       children: [
         // Bill amount input
         LabeledInputField(
-          label: 'Bill Amount',
-          hint: 'Enter bill amount',
-          suffix: '\$',
+          label: isKr ? '금액' : 'Bill Amount',
+          hint: isKr ? '금액을 입력하세요' : 'Enter bill amount',
+          suffix: currencyUnit,
           controller: _billController,
           inputFormatters: [ThousandsSeparatorInputFormatter()],
           onChanged: (v) {
@@ -57,7 +62,7 @@ class _TipScreenState extends ConsumerState<TipScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tip Percentage',
+              isKr ? '팁 비율' : 'Tip Percentage',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -107,7 +112,7 @@ class _TipScreenState extends ConsumerState<TipScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Custom Tip',
+                  isKr ? '직접 입력' : 'Custom Tip',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -156,7 +161,7 @@ class _TipScreenState extends ConsumerState<TipScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Split Between',
+              isKr ? '인원수' : 'Split Between',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -207,7 +212,9 @@ class _TipScreenState extends ConsumerState<TipScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${state.splitCount} ${state.splitCount == 1 ? 'person' : 'people'}',
+                  isKr
+                      ? '${state.splitCount}명'
+                      : '${state.splitCount} ${state.splitCount == 1 ? 'person' : 'people'}',
                   style: TextStyle(
                     fontSize: 13,
                     color: cs.onSurfaceVariant,
@@ -222,27 +229,27 @@ class _TipScreenState extends ConsumerState<TipScreen> {
 
         // Results
         ResultDisplayCard(
-          label: 'Tip Amount',
+          label: isKr ? '팁 금액' : 'Tip Amount',
           value: _formatNumber(state.tipAmount),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.tertiary,
         ),
 
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: 'Total',
+          label: isKr ? '합계' : 'Total',
           value: _formatNumber(state.totalAmount),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.primary,
         ),
 
         const SizedBox(height: 12),
 
         ResultDisplayCard(
-          label: 'Per Person',
+          label: isKr ? '1인당' : 'Per Person',
           value: _formatNumber(state.perPerson),
-          unit: '\$',
+          unit: currencyUnit,
           accentColor: cs.secondary,
         ),
       ],
