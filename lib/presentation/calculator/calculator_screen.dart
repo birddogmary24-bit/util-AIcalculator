@@ -1,4 +1,5 @@
 // ignore_for_file: unused_import
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -140,8 +141,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
     final calcState = ref.watch(calculatorProvider);
     final region = ref.watch(regionProvider);
     final s = AppStrings.of(region);
-    final apiKey = ref.watch(apiKeyNotifierProvider).valueOrNull;
-    final hasKey = apiKey != null && apiKey.isNotEmpty;
+    final hasKey = ref.watch(aiServiceProvider) != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -153,44 +153,75 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
         ),
-        titleSpacing: 4,
+        titleSpacing: 2,
         title: Text(
           s['app_title_display']!,
           style: TextStyle(
             fontFamily: region == RegionMode.kr ? 'Pretendard' : null,
             fontWeight: FontWeight.w600,
             fontSize: 22,
-            letterSpacing: region == RegionMode.kr ? 1.5 : 0.5,
+            letterSpacing: region == RegionMode.kr ? 0.5 : 0.2,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.key_outlined),
-            onPressed: () => _showApiKeyDialog(context, s),
-            tooltip: s['api_key_tooltip']!,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.history, size: 24),
-            onPressed: () => context.push('/history'),
-            tooltip: s['history_tooltip']!,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 4),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: const Icon(Icons.settings, size: 22),
-              onPressed: () => context.push('/settings'),
-              tooltip: s['settings_tooltip']!,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              constraints: const BoxConstraints(),
-            ),
-          ),
-        ],
+        actions: kIsWeb
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.key_outlined),
+                  onPressed: () => _showApiKeyDialog(context, s),
+                  tooltip: s['api_key_tooltip']!,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.history, size: 24),
+                  onPressed: () => context.push('/history'),
+                  tooltip: s['history_tooltip']!,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.settings, size: 22),
+                    onPressed: () => context.push('/settings'),
+                    tooltip: s['settings_tooltip']!,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+              ]
+            : [
+                // 모바일: 버튼 간격 최소화, 우측 끝에 딱 붙게
+                IconButton(
+                  icon: const Icon(Icons.key_outlined, size: 22),
+                  onPressed: () => _showApiKeyDialog(context, s),
+                  tooltip: s['api_key_tooltip']!,
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.history, size: 22),
+                  onPressed: () => context.push('/history'),
+                  tooltip: s['history_tooltip']!,
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: IconButton(
+                    icon: const Icon(Icons.settings, size: 22),
+                    onPressed: () => context.push('/settings'),
+                    tooltip: s['settings_tooltip']!,
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
       ),
       body: SafeArea(
         child: Column(
@@ -213,7 +244,6 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                         copyLabel: s['copy']!,
                         copiedLabel: s['copied']!,
                         errorLabel: s['calc_error']!,
-                        onAiTap: hasKey ? () => _showAiChat(context) : null,
                         onMicTap: hasKey ? () => _toggleListening(region) : null,
                         isListening: _isListening,
                         speechAvailable: _speechAvailable,
@@ -226,9 +256,11 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             ),
 
             // Button grid
-            const Padding(
-              padding: EdgeInsets.fromLTRB(8, 0, 8, 4),
-              child: ButtonGrid(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+              child: ButtonGrid(
+                onAiTap: hasKey ? () => _showAiChat(context) : null,
+              ),
             ),
           ],
         ),

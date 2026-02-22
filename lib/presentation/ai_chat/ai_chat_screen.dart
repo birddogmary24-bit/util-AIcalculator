@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/region.dart';
 import '../../core/theme/colors.dart';
-import '../../domain/services/gemini_service.dart';
+import '../../domain/services/proxy_ai_service.dart';
 import '../../domain/services/usage_limiter.dart';
 import '../../providers/config_provider.dart';
 import '../../providers/region_provider.dart';
@@ -61,7 +61,7 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
 
   Future<void> send(String input) async {
     if (input.trim().isEmpty) return;
-    final service = _ref.read(geminiServiceProvider);
+    final service = _ref.read(aiServiceProvider);
     if (service == null) return;
 
     final userMsg = ChatMessage(
@@ -180,8 +180,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   Widget build(BuildContext context) {
     final s = AppStrings.of(ref.watch(regionProvider));
     final chatState = ref.watch(aiChatProvider);
-    final apiKey = ref.watch(apiKeyNotifierProvider).valueOrNull;
-    final hasKey = apiKey != null && apiKey.isNotEmpty;
+    final service = ref.watch(aiServiceProvider);
+    final hasKey = service != null;
+    final remaining = (service is ProxyAiService) ? service.remainingToday : -1;
 
     // Auto scroll on new message
     ref.listen(aiChatProvider, (_, __) {
@@ -209,7 +210,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       ),
       body: Column(
         children: [
-          if (!hasKey) _apiKeyBanner(context, s),
+          _policyBar(context, s, remaining),
 
           Expanded(
             child: ListView.builder(
@@ -243,25 +244,54 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     );
   }
 
-  Widget _apiKeyBanner(BuildContext context, Map<String, String> s) {
+  /// 정책 안내 + 사용량 표시 바 (항상 노출)
+  Widget _policyBar(BuildContext context, Map<String, String> s, int remaining) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+
+    final policyText = isKr
+        ? '하루 50회 무료 제공 · 개인정보 미수집'
+        : 'Free 50 uses/day · No personal data collected';
+
+    final countText = remaining >= 0
+        ? (isKr ? '오늘 남은 횟수  $remaining / 50' : 'Remaining today  $remaining / 50')
+        : (isKr ? '오늘 남은 횟수  — / 50' : 'Remaining today  — / 50');
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: AppColors.aiTipAccent.withAlpha(30),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withAlpha(10)
+            : Colors.black.withAlpha(6),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 0.5,
+          ),
+        ),
+      ),
       child: Row(
         children: [
-          const Icon(Icons.key_outlined, size: 16, color: AppColors.aiTipAccent),
-          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              s['api_key_banner']!,
-              style: const TextStyle(fontSize: 13, color: AppColors.aiTipAccent),
+              policyText,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: Text(s['go_settings']!, style: const TextStyle(fontSize: 13)),
+          Text(
+            countText,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: remaining == 0
+                  ? AppColors.error
+                  : (isDark ? Colors.white54 : Colors.black45),
+            ),
           ),
         ],
       ),

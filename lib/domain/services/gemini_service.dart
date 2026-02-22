@@ -6,6 +6,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../core/constants/region.dart';
 import '../../providers/config_provider.dart';
 import '../../providers/region_provider.dart';
+import 'ai_service_interface.dart';
 
 class NlpCalcResult {
   final String expression;
@@ -21,7 +22,7 @@ class NlpCalcResult {
   });
 }
 
-class GeminiService {
+class GeminiService implements IAiService {
   final GenerativeModel _jsonModel;
   final GenerativeModel _chatModel;
   final RegionMode _region;
@@ -55,6 +56,7 @@ class GeminiService {
   }
 
   /// Natural language calculation
+  @override
   Future<NlpCalcResult> parseNaturalLanguage(String input) async {
     final prompt = _region == RegionMode.kr
         ? '''
@@ -105,6 +107,7 @@ Important: result must be a number, not a string.
   }
 
   /// Multi-turn chat — 최근 3쌍(6개)만 참조
+  @override
   Future<String> chat(List<Map<String, String>> messages) async {
     // indexOf 대신 lastIndexWhere + sublist 패턴으로 안전하게 처리
     final lastUserIndex = messages.lastIndexWhere((m) => m['role'] == 'user');
