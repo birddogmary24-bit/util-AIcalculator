@@ -48,12 +48,20 @@ app.*.map.json
 .env
 .env.*
 run_dev.sh
+run_build.sh
+
+# Release APKs (managed locally in releases/)
+releases/
+*.apk
 android/key.properties
 android/local.properties
 
 # Generated Dart files
 *.g.dart
 *.freezed.dart
+
+# Drift web worker deps
+web/drift_worker.js.deps
 
 # Service account keys
 *-service-account*.json

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/calculator_engine.dart';
 import '../../data/repositories/history_repository.dart';
-import '../../domain/services/gemini_service.dart';
+import '../../providers/config_provider.dart';
 
 class DisplayLine {
   final String expression;
@@ -142,7 +142,7 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
   bool get isAllClear => _engine.isAllClearState;
 
   Future<void> parseNaturalLanguage(String input) async {
-    final service = _ref.read(geminiServiceProvider);
+    final service = _ref.read(aiServiceProvider);
     if (service == null) return;
     state = state.copyWith(isAiLoading: true);
     try {

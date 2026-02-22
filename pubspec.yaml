@@ -1,7 +1,7 @@
 name: util_ai_calculator
 description: "AI 계산기 - 자연어 계산, 영수증 인식, 맥락 해석 기능을 갖춘 스마트 계산기"
 publish_to: 'none'
-version: 1.3.0+4
+version: 0.1.0+1
 
 environment:
   sdk: ^3.6.2
@@ -30,20 +30,11 @@ dependencies:
   # HTTP
   http: ^1.2.2
 
-  # Google Gemini AI
-  google_generative_ai: ^0.4.6
-
   # Voice Input
   speech_to_text: ^7.3.0
 
   # Secure Storage (API Key)
   flutter_secure_storage: ^9.2.4
-
-  # Camera / Image (Mobile only)
-  image_picker: ^1.1.2
-
-  # OCR (Mobile only, kIsWeb guard applied)
-  google_mlkit_text_recognition: ^0.15.0
 
   # Internationalization
   intl: ^0.19.0
