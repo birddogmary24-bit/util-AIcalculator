@@ -12,7 +12,8 @@ import 'button_swap_modal.dart';
 import 'calc_button.dart';
 
 class ButtonGrid extends ConsumerWidget {
-  const ButtonGrid({super.key});
+  final VoidCallback? onAiTap;
+  const ButtonGrid({super.key, this.onAiTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +36,7 @@ class ButtonGrid extends ConsumerWidget {
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
         const gap = 10.0;
+        const utilityGap = 3.5;
         final btnSize = (totalWidth - gap * 3) / 4;
 
         return Column(
@@ -44,7 +46,7 @@ class ButtonGrid extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: gap),
               child: LayoutBuilder(
                 builder: (ctx, innerConstraints) {
-                  return _buildUtilityRow(ctx, ref, notifier, innerConstraints.maxWidth, gap, currentIds, region, s);
+                  return _buildUtilityRow(ctx, ref, notifier, innerConstraints.maxWidth, utilityGap, currentIds, region, s);
                 },
               ),
             ),
@@ -229,43 +231,45 @@ class ButtonGrid extends ConsumerWidget {
     Map<String, String> s,
   ) {
     final utilityConfig = ref.watch(utilityButtonConfigProvider);
-    final btnWidth = (totalWidth - gap * (utilitySlotCount - 1)) / utilitySlotCount;
+    // Layout: [Reset] [Slot1] [Slot2] [Slot3] | [AI]
+    // 5 buttons + 4 gaps + divider area (1px + 4px padding each side = 9px total)
+    const dividerTotalWidth = 9.0;
+    final btnWidth = (totalWidth - gap * (utilitySlotCount - 1) - dividerTotalWidth) / utilitySlotCount;
     const btnHeight = 34.0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final localizedPlaceholders = getUtilityPlaceholders(region);
 
-    final buttons = List.generate(utilitySlotCount, (index) {
-      // ── Slot 0: Reset button config immediately ───────────────────────
-      if (index == 0) {
-        return SizedBox(
-          width: btnWidth,
-          height: btnHeight,
-          child: GestureDetector(
-            onTap: () async {
-              await ref.read(buttonConfigProvider.notifier).resetToDefault();
-              await ref.read(utilityButtonConfigProvider.notifier).resetAll();
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF3A4870) : const Color(0xFF4A5882),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                region == RegionMode.kr ? '초기화' : 'Reset',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+    // ── Slot 0: Reset ────────────────────────────────────────────────────
+    final resetBtn = SizedBox(
+      width: btnWidth,
+      height: btnHeight,
+      child: GestureDetector(
+        onTap: () async {
+          await ref.read(buttonConfigProvider.notifier).resetToDefault();
+          await ref.read(utilityButtonConfigProvider.notifier).resetAll();
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF3A4870) : const Color(0xFF4A5882),
+            borderRadius: BorderRadius.circular(8),
           ),
-        );
-      }
+          alignment: Alignment.center,
+          child: Text(
+            region == RegionMode.kr ? '초기화' : 'Reset',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
 
-      // ── Slots 1–4: Configurable ──────────────────────────────────────────
+    // ── Slots 1–3: Configurable ──────────────────────────────────────────
+    final configSlots = List.generate(3, (i) {
+      final index = i + 1; // slots 1, 2, 3
       final configuredId = utilityConfig[index];
       final def = configuredId != null ? getButtonDef(configuredId) : null;
       final isConfigured = def != null;
@@ -296,11 +300,37 @@ class ButtonGrid extends ConsumerWidget {
       );
     });
 
+    // ── Slot 4: AI (fixed, Gemini colors) ────────────────────────────────
+    final aiBtn = SizedBox(
+      width: btnWidth,
+      height: btnHeight,
+      child: _GeminiAiButton(
+        isDark: isDark,
+        onTap: onAiTap,
+      ),
+    );
+
+    // ── Divider between slot3 and AI ─────────────────────────────────────
+    final divider = SizedBox(
+      width: dividerTotalWidth,
+      height: btnHeight,
+      child: Center(
+        child: Container(
+          width: 1,
+          height: btnHeight * 0.55,
+          color: isDark ? Colors.white24 : Colors.black26,
+        ),
+      ),
+    );
+
     return Row(
-      children: buttons
-          .expand((w) => [w, SizedBox(width: gap)])
-          .toList()
-        ..removeLast(),
+      children: [
+        resetBtn,
+        SizedBox(width: gap),
+        ...configSlots.expand((w) => [w, SizedBox(width: gap)]),
+        divider,
+        aiBtn,
+      ],
     );
   }
 
@@ -322,6 +352,78 @@ class ButtonGrid extends ConsumerWidget {
     } else {
       await ref.read(utilityButtonConfigProvider.notifier).setButton(slotIndex, selected);
     }
+  }
+}
+
+// ── Gemini AI 버튼 (유틸리티 행 고정 슬롯) ──────────────────────────────────
+
+class _GeminiAiButton extends StatefulWidget {
+  final bool isDark;
+  final VoidCallback? onTap;
+
+  const _GeminiAiButton({required this.isDark, this.onTap});
+
+  @override
+  State<_GeminiAiButton> createState() => _GeminiAiButtonState();
+}
+
+class _GeminiAiButtonState extends State<_GeminiAiButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = widget.onTap != null;
+    final pressedDarken = _pressed ? 0.18 : 0.0;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap?.call();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 70),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _pressed ? 2 : 0, 0),
+        decoration: BoxDecoration(
+          gradient: isActive
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.lerp(const Color(0xFF4285F4), Colors.black, pressedDarken)!,
+                    Color.lerp(const Color(0xFF9C4FEA), Colors.black, pressedDarken)!,
+                    Color.lerp(const Color(0xFFEA4335), Colors.black, pressedDarken)!,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                )
+              : null,
+          color: isActive ? null : (widget.isDark ? const Color(0xFF3A3D45) : const Color(0xFFE8E8EC)),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isActive && !_pressed
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF9C4FEA).withAlpha(100),
+                    offset: const Offset(0, 3),
+                    blurRadius: 0,
+                    spreadRadius: 0,
+                  ),
+                ]
+              : [],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'AI',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: isActive ? Colors.white : (widget.isDark ? Colors.white38 : Colors.black38),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
   }
 }
 

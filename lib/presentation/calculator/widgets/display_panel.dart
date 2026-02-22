@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/constants/region.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/number_formatter.dart';
 import '../calculator_provider.dart';
+import 'mic_button.dart';
 
 class DisplayPanel extends StatefulWidget {
   final String display;
@@ -12,10 +14,10 @@ class DisplayPanel extends StatefulWidget {
   final String copyLabel;
   final String copiedLabel;
   final String errorLabel;
-  final VoidCallback? onAiTap;
   final VoidCallback? onMicTap;
   final bool isListening;
   final bool speechAvailable;
+  final RegionMode region;
 
   const DisplayPanel({
     super.key,
@@ -26,10 +28,10 @@ class DisplayPanel extends StatefulWidget {
     required this.copyLabel,
     required this.copiedLabel,
     required this.errorLabel,
-    this.onAiTap,
     this.onMicTap,
     this.isListening = false,
     this.speechAvailable = false,
+    this.region = RegionMode.kr,
   });
 
   @override
@@ -242,104 +244,19 @@ class _DisplayPanelState extends State<DisplayPanel>
                       ),
                     ),
 
-                  // ── Bottom row: [Mic/AI column] | [Copy + Number/Cursor] ──
+                  // ── Bottom row: [Mic column] | [Copy + Number/Cursor] ──
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Left column: Mic (top) + AI (bottom)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Mic button (above AI)
-                          if (widget.speechAvailable) ...[
-                            GestureDetector(
-                              onTap: widget.onMicTap,
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  gradient: !widget.isListening && widget.onMicTap != null
-                                      ? const LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Color(0xFF7986CB),
-                                            Color(0xFF3F51B5),
-                                            Color(0xFF283593),
-                                          ],
-                                          stops: [0.0, 0.5, 1.0],
-                                        )
-                                      : null,
-                                  color: widget.isListening
-                                      ? AppColors.error
-                                      : (widget.onMicTap == null
-                                          ? AppColors.expressionText.withAlpha(50)
-                                          : null),
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  widget.isListening
-                                      ? Icons.stop_rounded
-                                      : Icons.mic_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                          ],
-                          // AI button (bottommost)
-                          GestureDetector(
-                            onTap: widget.onAiTap,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                gradient: widget.onAiTap != null
-                                    ? const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFF7986CB),
-                                          Color(0xFF3F51B5),
-                                          Color(0xFF283593),
-                                        ],
-                                        stops: [0.0, 0.5, 1.0],
-                                      )
-                                    : null,
-                                color: widget.onAiTap == null
-                                    ? AppColors.expressionText.withAlpha(50)
-                                    : null,
-                                shape: BoxShape.circle,
-                                boxShadow: widget.onAiTap != null
-                                    ? [
-                                        const BoxShadow(
-                                          color: Color(0x66FFFFFF),
-                                          blurRadius: 3,
-                                          offset: Offset(-1, -1),
-                                        ),
-                                        const BoxShadow(
-                                          color: Color(0xAA283593),
-                                          blurRadius: 8,
-                                          offset: Offset(2, 3),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                'AI',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      // Left column: Mic button
+                      MicButton(
+                        speechAvailable: widget.speechAvailable,
+                        isListening: widget.isListening,
+                        region: widget.region,
+                        size: 40,
+                        onResult: (_) {},
+                        onStart: widget.onMicTap,
+                        onStop: widget.onMicTap,
                       ),
                       // Right side: Copy + Number/Cursor — fills remaining width
                       Expanded(

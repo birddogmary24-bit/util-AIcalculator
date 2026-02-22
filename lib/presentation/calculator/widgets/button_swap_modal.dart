@@ -113,7 +113,12 @@ class _ButtonSwapSheet extends StatelessWidget {
 
           // Fixed reset button at bottom
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              8,
+              16,
+              16 + MediaQuery.of(context).viewPadding.bottom * 0.5 + 26,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(

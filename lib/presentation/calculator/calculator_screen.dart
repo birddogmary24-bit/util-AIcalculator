@@ -247,6 +247,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                         onMicTap: hasKey ? () => _toggleListening(region) : null,
                         isListening: _isListening,
                         speechAvailable: _speechAvailable,
+                        region: region,
                       ),
                     ),
                     const SizedBox(height: 8),

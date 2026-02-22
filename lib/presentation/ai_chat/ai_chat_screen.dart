@@ -8,6 +8,7 @@ import '../../domain/services/usage_limiter.dart';
 import '../../providers/config_provider.dart';
 import '../../providers/region_provider.dart';
 import '../calculator/calculator_provider.dart';
+import '../calculator/widgets/mic_button.dart';
 
 // --- State ---
 
@@ -238,6 +239,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             onSend: _send,
             hintEnabled: s['chat_input_hint']!,
             hintDisabled: s['set_api_first']!,
+            region: ref.watch(regionProvider),
           ),
         ],
       ),
@@ -546,12 +548,13 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
   }
 }
 
-class _ChatInputBar extends StatelessWidget {
+class _ChatInputBar extends StatefulWidget {
   final TextEditingController controller;
   final bool enabled;
   final VoidCallback onSend;
   final String hintEnabled;
   final String hintDisabled;
+  final RegionMode region;
 
   const _ChatInputBar({
     required this.controller,
@@ -559,8 +562,14 @@ class _ChatInputBar extends StatelessWidget {
     required this.onSend,
     required this.hintEnabled,
     required this.hintDisabled,
+    required this.region,
   });
 
+  @override
+  State<_ChatInputBar> createState() => _ChatInputBarState();
+}
+
+class _ChatInputBarState extends State<_ChatInputBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -580,15 +589,15 @@ class _ChatInputBar extends StatelessWidget {
           children: [
             Expanded(
               child: TextField(
-                controller: controller,
-                enabled: enabled,
-                onSubmitted: (_) => onSend(),
+                controller: widget.controller,
+                enabled: widget.enabled,
+                onSubmitted: (_) => widget.onSend(),
                 maxLines: null,
                 maxLength: 200,
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 keyboardType: TextInputType.multiline,
                 decoration: InputDecoration(
-                  hintText: enabled ? hintEnabled : hintDisabled,
+                  hintText: widget.enabled ? widget.hintEnabled : widget.hintDisabled,
                   hintStyle: const TextStyle(
                     color: AppColors.expressionText,
                     fontSize: 14,
@@ -604,13 +613,26 @@ class _ChatInputBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            // Mic button — left of send
+            MicButtonController(
+              region: widget.region,
+              size: 44,
+              onResult: (text) {
+                widget.controller.text = text;
+                widget.controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: text.length),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+            // Send button
             GestureDetector(
-              onTap: enabled ? onSend : null,
+              onTap: widget.enabled ? widget.onSend : null,
               child: Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: enabled ? AppColors.primary : AppColors.expressionText,
+                  color: widget.enabled ? AppColors.primary : AppColors.expressionText,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
