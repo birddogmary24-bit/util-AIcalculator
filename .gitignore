@@ -69,3 +69,11 @@ service-account*.json
 
 # Firebase
 .firebase/
+firebase-debug.log
+
+# iOS Firebase config (sensitive)
+**/GoogleService-Info.plist
+
+# Android signing
+*.jks
+*.keystore
