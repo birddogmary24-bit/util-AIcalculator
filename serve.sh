@@ -5,7 +5,7 @@ source "$(dirname "$0")/.env"
 # 빌드 여부 선택 (--serve-only 플래그로 빌드 스킵)
 if [ "$1" != "--serve-only" ]; then
   echo "Building web..."
-  /Users/waynepark/development/flutter/bin/flutter build web \
+  flutter build web \
     --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
     --dart-define=PROXY_BASE_URL=$PROXY_BASE_URL \
     --dart-define=PROXY_APP_TOKEN=$PROXY_APP_TOKEN

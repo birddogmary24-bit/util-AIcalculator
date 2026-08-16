@@ -15,6 +15,7 @@ class DisplayPanel extends StatefulWidget {
   final String copiedLabel;
   final String errorLabel;
   final VoidCallback? onMicTap;
+  final VoidCallback? onBackspace;
   final bool isListening;
   final bool speechAvailable;
   final RegionMode region;
@@ -29,6 +30,7 @@ class DisplayPanel extends StatefulWidget {
     required this.copiedLabel,
     required this.errorLabel,
     this.onMicTap,
+    this.onBackspace,
     this.isListening = false,
     this.speechAvailable = false,
     this.region = RegionMode.kr,
@@ -119,12 +121,10 @@ class _DisplayPanelState extends State<DisplayPanel>
   }
 
   double _fontSize(String text) {
-    if (text.length <= 6) return 52;
-    if (text.length <= 9) return 42;
-    if (text.length <= 12) return 34;
-    if (text.length <= 16) return 26;
-    if (text.length <= 20) return 22;
-    return 18;
+    if (text.length <= 10) return 46;
+    if (text.length <= 14) return 38;
+    if (text.length <= 18) return 30;
+    return 24;
   }
 
   @override
@@ -167,7 +167,7 @@ class _DisplayPanelState extends State<DisplayPanel>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // ── Past history lines (scrollable) ──────────────────
+                  // ── Past history lines (컴팩트 1줄 스타일) ─────────────
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollController,
@@ -177,47 +177,26 @@ class _DisplayPanelState extends State<DisplayPanel>
                         final line = widget.displayHistory[index];
                         final fmtResult = _formatValue(line.result);
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                _formatExpression(line.expression),
-                                style: const TextStyle(
-                                  color: AppColors.lcdExpr,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.right,
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (line.isAi) ...[
-                                    const _AiBadge(),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  Flexible(
-                                    child: Text(
-                                      '= $fmtResult',
-                                      style: const TextStyle(
-                                        color: AppColors.lcdText,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.right,
-                                    ),
+                              if (line.isAi) ...[
+                                const _AiBadge(),
+                                const SizedBox(width: 4),
+                              ],
+                              Flexible(
+                                child: Text(
+                                  '${_formatExpression(line.expression)} = $fmtResult',
+                                  style: const TextStyle(
+                                    color: AppColors.lcdExpr,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ],
-                              ),
-                              const Divider(
-                                height: 8,
-                                thickness: 0.5,
-                                color: AppColors.lcdExpr,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right,
+                                ),
                               ),
                             ],
                           ),
@@ -229,7 +208,7 @@ class _DisplayPanelState extends State<DisplayPanel>
                   // ── Current expression ───────────────────────────────
                   if (widget.expression.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.only(bottom: 2),
                       child: Text(
                         _formatExpression(widget.expression),
                         style: const TextStyle(
@@ -244,91 +223,101 @@ class _DisplayPanelState extends State<DisplayPanel>
                       ),
                     ),
 
-                  // ── Bottom row: [Mic column] | [Copy + Number/Cursor] ──
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Left column: Mic button
-                      MicButton(
-                        speechAvailable: widget.speechAvailable,
-                        isListening: widget.isListening,
-                        region: widget.region,
-                        size: 40,
-                        onResult: (_) {},
-                        onStart: widget.onMicTap,
-                        onStop: widget.onMicTap,
-                      ),
-                      // Right side: Copy + Number/Cursor — fills remaining width
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Copy button
-                            _CopyButton(
-                              text: formatted,
-                              copyLabel: widget.copyLabel,
-                              copiedLabel: widget.copiedLabel,
+                  // ── Dedicated Main Number Display Row (한 줄 전체 사용) ──
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            formatted,
+                            style: TextStyle(
+                              color: AppColors.lcdText,
+                              fontSize: fs,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -1,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        if (_isIdle)
+                          FadeTransition(
+                            opacity: _cursorAnim,
+                            child: Container(
+                              width: 3.5,
+                              height: fs * 0.7,
+                              margin: const EdgeInsets.only(left: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.lcdCursor,
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Bottom Control Row: [Mic + Backspace] <---> [AI / Loading / Copy] ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left: Mic button + Backspace button
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          MicButton(
+                            speechAvailable: widget.speechAvailable,
+                            isListening: widget.isListening,
+                            region: widget.region,
+                            size: 38,
+                            onResult: (_) {},
+                            onStart: widget.onMicTap,
+                            onStop: widget.onMicTap,
+                          ),
+                          if (widget.onBackspace != null) ...[
                             const SizedBox(width: 8),
-                            if (_isCurrentResultAi)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 4),
-                                child: _AiBadge(large: true),
-                              ),
-                            if (widget.isAiLoading)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 6),
-                                child: SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: Color(0xFF8A9AB2),
-                                  ),
-                                ),
-                              ),
-                            // Number + cursor — flexible so it shrinks if needed
-                            Flexible(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      formatted,
-                                      style: TextStyle(
-                                        color: AppColors.lcdText,
-                                        fontSize: fs,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -1,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ),
-                                  if (_isIdle)
-                                    FadeTransition(
-                                      opacity: _cursorAnim,
-                                      child: Container(
-                                        width: 3,
-                                        height: fs * 0.65,
-                                        margin: const EdgeInsets.only(left: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.lcdCursor,
-                                          borderRadius: BorderRadius.circular(1),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                            _BackspaceButton(
+                              size: 38,
+                              onTap: widget.onBackspace,
                             ),
                           ],
-                        ),
+                        ],
+                      ),
+                      // Right: AI badge + Loading indicator + Copy button
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isCurrentResultAi)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 6),
+                              child: _AiBadge(large: true),
+                            ),
+                          if (widget.isAiLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 6),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Color(0xFF8A9AB2),
+                                ),
+                              ),
+                            ),
+                          _CopyButton(
+                            text: formatted,
+                            copyLabel: widget.copyLabel,
+                            copiedLabel: widget.copiedLabel,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -429,4 +418,90 @@ class _AiBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BackspaceButton extends StatefulWidget {
+  final double size;
+  final VoidCallback? onTap;
+
+  const _BackspaceButton({
+    this.size = 40,
+    this.onTap,
+  });
+
+  @override
+  State<_BackspaceButton> createState() => _BackspaceButtonState();
+}
+
+class _BackspaceButtonState extends State<_BackspaceButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap?.call();
+      },
+      child: AnimatedScale(
+        scale: _isPressed ? 0.90 : 1.0,
+        duration: const Duration(milliseconds: 80),
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF7986CB),
+                Color(0xFF3F51B5),
+                Color(0xFF283593),
+              ],
+              stops: [0.0, 0.5, 1.0],
+            ),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: CustomPaint(
+            size: Size(widget.size, widget.size),
+            painter: const _ChevronLeftPainter(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChevronLeftPainter extends CustomPainter {
+  const _ChevronLeftPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    // Centered chevron pointing left (<)
+    final cx = size.width * 0.44;
+    final cy = size.height * 0.5;
+    final dx = size.width * 0.14;
+    final dy = size.height * 0.18;
+
+    path.moveTo(cx + dx, cy - dy);
+    path.lineTo(cx, cy);
+    path.lineTo(cx + dx, cy + dy);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

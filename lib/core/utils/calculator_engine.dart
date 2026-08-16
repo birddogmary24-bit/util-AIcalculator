@@ -167,6 +167,55 @@ class CalculatorEngine {
     _justPressedOp = false;
   }
 
+  void backspace() {
+    if (_justCalculated) {
+      if (_currentInput == '계산 오류') {
+        _currentInput = '0';
+        _savedExpression = '';
+        _justCalculated = false;
+        return;
+      }
+      if (_currentInput.length > 1) {
+        _currentInput = _currentInput.substring(0, _currentInput.length - 1);
+        if (_currentInput == '-' || _currentInput.isEmpty) {
+          _currentInput = '0';
+        }
+      } else {
+        _currentInput = '0';
+      }
+      _justCalculated = false;
+      return;
+    }
+
+    if (_justPressedOp) {
+      if (_tokens.isNotEmpty) {
+        final lastToken = _tokens.removeLast();
+        if (lastToken == '(' && _openParens > 0) {
+          _openParens--;
+        }
+        if (_tokens.isNotEmpty) {
+          final prevToken = _tokens.removeLast();
+          if (double.tryParse(prevToken) != null || prevToken == '0') {
+            _currentInput = prevToken;
+          } else {
+            _tokens.add(prevToken);
+          }
+        }
+      }
+      _justPressedOp = false;
+      return;
+    }
+
+    if (_currentInput.length > 1) {
+      _currentInput = _currentInput.substring(0, _currentInput.length - 1);
+      if (_currentInput == '-' || _currentInput.isEmpty) {
+        _currentInput = '0';
+      }
+    } else {
+      _currentInput = '0';
+    }
+  }
+
   void clear() {
     _currentInput = '0';
     _justPressedOp = false;
