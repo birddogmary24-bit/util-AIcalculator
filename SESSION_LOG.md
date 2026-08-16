@@ -18,6 +18,7 @@
 | **Vercel** | `migrate_to_vercel_db` | `prj_...` | [Vercel Project Dashboard](https://vercel.com/birddogmary24-bits-projects/migrate_to_vercel_db) |
 | **Supabase** | `ai-calculator` | `xubpbdfiaolwrjckfltp` | [Supabase Dashboard](https://supabase.com/dashboard/project/xubpbdfiaolwrjckfltp) |
 | **Supabase Org** | `waynepark-personal` | `jtxjearocpjckizjkyxd` | - |
+| **GitHub PR** | `feat: migrate hosting to Vercel and remote database to Supabase` | `#2` | [GitHub PR #2](https://github.com/birddogmary24-bit/util-AIcalculator/pull/2) |
 
 ### 원격 DB 스키마 (Supabase)
 - **`public.calculations`**:
@@ -31,7 +32,24 @@
 
 ---
 
-## 🔑 2. 필수 환경변수 목록
+## 🔄 2. Git 표준 작업 워크플로우 (규칙)
+
+모든 작업은 아래 **5단계 표준 루틴**으로 진행합니다:
+
+```
+[1. Commit] (로컬 저장) ➡️ [2. Push] (GitHub 브랜치 생성/업로드) ➡️ [3. PR] (풀 리퀘스트 생성) 
+➡️ [4. Merge] (GitHub 웹에서 승인/합치기) ➡️ [5. Pull] (로컬 main 최신화)
+```
+
+1. 새 작업 시 **독립 브랜치**에서 시작
+2. 작업 완료 및 `flutter analyze` 통과 시 **Commit & GitHub으로 Push**
+3. **GitHub PR 자동 생성** 후 링크 전달
+4. 사용자가 GitHub 웹에서 **[Merge]** 승인
+5. 큰 단위 작업 완료 시 **`SESSION_LOG.md` 갱신 필수**
+
+---
+
+## 🔑 3. 필수 환경변수 목록
 
 로컬(`.env`) 및 Vercel(Production, Preview)에 주입되는 변수:
 - `GEMINI_API_KEY`: Google AI Studio Gemini API Key
@@ -40,7 +58,7 @@
 
 ---
 
-## 🛠 3. 최근 작업 이력
+## 🛠 4. 최근 작업 이력
 
 ### [2026-08-16] Vercel + Supabase 마이그레이션 및 프로덕션 배포
 - **Firebase ➡️ Vercel 전환**:
@@ -55,10 +73,12 @@
   - Dart 3.13 / Web 컴파일러 호환 이슈가 있던 `google_fonts` 제거하고 로컬 Pretendard 폰트 및 모노스페이스 스타일로 교체
 - **배포 및 환경변수 주입 완료**:
   - Vercel CLI로 환경변수 3종(`GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) 등록 및 프로덕션 배포 완료
+- **GitHub PR 생성**:
+  - `migrate_to_vercel_db` 브랜치를 GitHub에 푸시하고 [PR #2](https://github.com/birddogmary24-bit/util-AIcalculator/pull/2) 생성 완료
 
 ---
 
-## 🚀 4. 새 환경 / 다른 컴퓨터에서 작업 이어받기
+## 🚀 5. 새 환경 / 다른 컴퓨터에서 작업 이어받기
 
 1. **저장소 클론 후 의존성 설치**:
    ```bash
@@ -82,7 +102,7 @@
 
 ---
 
-## 📋 5. 향후 작업 백로그
+## 📋 6. 향후 작업 백로그
 - [ ] Supabase 계산 기록 복원/불러오기 UI 연동 (히스토리 화면에서 원격 백업 조회)
 - [ ] 영수증 OCR 기능 (모바일 전용)
 - [ ] 다크 모드 및 접근성 개선
