@@ -1,4 +1,4 @@
-# util-AIcalculator — CLAUDE.md
+# util-AIcalculator — AGENTS.md (개발 규칙 및 프로젝트 지침)
 
 ## 프로젝트 개요
 40~60대 사용자를 위한 AI 계산기 앱.
