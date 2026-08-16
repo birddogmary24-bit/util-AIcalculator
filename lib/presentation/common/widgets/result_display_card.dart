@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ResultDisplayCard extends StatelessWidget {
   final String label;
@@ -46,7 +45,8 @@ class ResultDisplayCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: GoogleFonts.robotoMono(
+                  style: TextStyle(
+                    fontFamily: 'monospace',
                     fontSize: 26,
                     fontWeight: FontWeight.w700,
                     color: cs.onSurface,

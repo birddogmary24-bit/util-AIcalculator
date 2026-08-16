@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'core/constants/region.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/calculator/calculator_screen.dart';
@@ -105,12 +104,7 @@ class _AppState extends ConsumerState<App> {
     final region = ref.watch(regionProvider);
     final s = AppStrings.of(region);
 
-    final baseTheme = AppTheme.light;
-    final theme = region == RegionMode.global
-        ? baseTheme.copyWith(
-            textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme),
-          )
-        : baseTheme;
+    final theme = AppTheme.light;
 
     return MaterialApp.router(
       title: s['app_title'] ?? 'AI Calculator',
