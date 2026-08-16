@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../local/app_database.dart';
 import '../local/database_provider.dart';
+import '../remote/supabase_service.dart';
 
 // Re-export Drift-generated HistoryEntry so UI/providers keep the same import.
 export '../local/app_database.dart' show HistoryEntry;
@@ -28,12 +29,21 @@ class HistoryRepository {
     required double result,
     required String source,
   }) async {
+    final now = DateTime.now();
     await _db.into(_db.historyEntries).insert(HistoryEntriesCompanion.insert(
           expression: expression,
           result: result,
           source: source,
-          createdAtMs: DateTime.now().millisecondsSinceEpoch,
+          createdAtMs: now.millisecondsSinceEpoch,
         ));
+
+    // Async sync to Supabase remote DB if configured
+    SupabaseService.saveCalculation(
+      expression: expression,
+      result: result,
+      source: source,
+      createdAt: now,
+    );
   }
 
   Future<void> delete(int id) async {
@@ -44,6 +54,7 @@ class HistoryRepository {
 
   Future<void> clearAll() async {
     await _db.delete(_db.historyEntries).go();
+    SupabaseService.clearAllCalculations();
   }
 
   Future<List<HistoryEntry>> search(String query) async {

@@ -27,8 +27,9 @@ dependencies:
   path_provider: ^2.1.5
   path: any
 
-  # HTTP
+  # HTTP & Remote Backend
   http: ^1.2.2
+  supabase_flutter: ^2.8.0
 
   # Voice Input
   speech_to_text: ^7.3.0
@@ -37,8 +38,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
 
   # Internationalization
-  intl: ^0.19.0
-  google_fonts: ^6.2.1
+  intl: ^0.20.2
 
   # Local Notifications (Birthday Reminder)
   flutter_local_notifications: ^18.0.0

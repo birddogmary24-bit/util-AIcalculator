@@ -10,14 +10,15 @@ Flutter (iOS + Android + **Web 우선**).
 - go_router 14.8.x (ShellRoute 3탭)
 - Gemini API (gemini-2.0-flash) — AI 기능 전담
 - flutter_secure_storage / SharedPreferences — API 키 보관
-- History: **Drift SQLite** (웹: IndexedDB/WasmDatabase, 네이티브: SQLite 파일)
+- History & Storage: **Drift SQLite** (로컬 캐시) + **Supabase (supabase_flutter)** (원격 동기화)
+- Hosting: **Vercel** (Flutter Web 자동 빌드 및 프리뷰)
 
 ## 폴더 구조 요약
 ```
 lib/
-  core/          — 테마, 라우터, 유틸 (계산 엔진, 포맷터)
-  data/          — 리포지토리 (HistoryRepository)
-  domain/        — 서비스 (ClaudeService, SecureConfig)
+  core/          — 테마, 라우터, 유틸 (계산 엔진, 포맷터, 설정)
+  data/          — 리포지토리 (HistoryRepository), 로컬 DB, 원격 Supabase 서비스
+  domain/        — 서비스 (GeminiService, SecureConfig)
   presentation/  — 화면 (calculator, ai_chat, history)
   providers/     — Riverpod 프로바이더 (theme, config)
 ```
@@ -26,8 +27,11 @@ lib/
 1. `parseNaturalLanguage(input)` — 자연어 → 계산 결과
 2. `chat(messages)` — AI 채팅 탭 멀티턴 대화
 
-## API 키 설정
-- `.env` 파일에 `GEMINI_API_KEY=...` 저장 (git 제외, 개발 편의용)
+## 환경변수 (.env) 설정
+- `.env` 파일에 아래 환경변수 저장 (git 제외):
+  - `GEMINI_API_KEY=...`
+  - `SUPABASE_URL=...` (선택: 원격 동기화 활성화 시)
+  - `SUPABASE_ANON_KEY=...` (선택: 원격 동기화 활성화 시)
 - 앱 실행 후 계산기 탭 우상단 🔑 아이콘 → UI에서 직접 입력도 가능
 - 우선순위: UI 입력 키 > `.env` 키
 
@@ -37,6 +41,7 @@ lib/
 - 커밋 전 `flutter analyze` 통과 필수
 - API 키 하드코딩 절대 금지
 - 웹 미지원 기능(OCR)은 `kIsWeb` 분기로 처리
+- **큰 작업 완료 시 `SESSION_LOG.md` 갱신 필수** (핸드오프 및 타 환경 작업 인수인계용)
 
 ### 브랜치 전략
 - **1 브랜치 = 1 기능** (독립 단위로 분리, 여러 기능을 한 브랜치에 섞지 않음)

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/region.dart';
@@ -221,7 +220,8 @@ class _DdayScreenState extends ConsumerState<DdayScreen> {
       child: Center(
         child: Text(
           displayText,
-          style: GoogleFonts.robotoMono(
+          style: TextStyle(
+            fontFamily: 'monospace',
             fontSize: 48,
             fontWeight: FontWeight.bold,
             color: displayColor,
