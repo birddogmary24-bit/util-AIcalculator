@@ -245,6 +245,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                         copiedLabel: s['copied']!,
                         errorLabel: s['calc_error']!,
                         onMicTap: hasKey ? () => _toggleListening(region) : null,
+                        onBackspace: () => ref.read(calculatorProvider.notifier).backspace(),
                         isListening: _isListening,
                         speechAvailable: _speechAvailable,
                         region: region,

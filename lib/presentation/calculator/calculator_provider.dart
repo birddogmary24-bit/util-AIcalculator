@@ -108,6 +108,15 @@ class CalculatorNotifier extends StateNotifier<CalculatorState> {
     state = state.copyWith(display: _engine.display);
   }
 
+  void backspace() {
+    _engine.backspace();
+    state = state.copyWith(
+      display: _engine.display,
+      expression: _engine.expression,
+      openParens: _engine.openParens,
+    );
+  }
+
   void clear() {
     _engine.clear();
     state = state.copyWith(display: _engine.display);
