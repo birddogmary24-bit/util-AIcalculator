@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../domain/services/ai_service_interface.dart';
-import '../domain/services/device_id_service.dart';
-import '../domain/services/proxy_ai_service.dart';
+import '../domain/services/gemini_service.dart';
 import '../domain/services/secure_config.dart';
 import 'region_provider.dart';
 
@@ -44,16 +43,13 @@ class ApiKeyNotifier extends StateNotifier<AsyncValue<String?>> {
   String? get currentKey => state.valueOrNull;
 }
 
-/// 앱 고유 디바이스 ID (UUID v4, SharedPreferences 영구 저장)
-final deviceIdProvider = FutureProvider<String>((ref) async {
-  return DeviceIdService.getOrCreate();
+/// Gemini API를 사용하는 AI 서비스 프로바이더.
+/// API 키가 설정되어 있을 때만 유효한 IAiService를 반환하고, 없으면 null을 반환합니다.
+final aiServiceProvider = Provider<IAiService?>((ref) {
+  final keyState = ref.watch(apiKeyNotifierProvider);
+  final key = keyState.valueOrNull;
+  if (key == null || key.trim().isEmpty) return null;
+  final region = ref.watch(regionProvider);
+  return GeminiService(http.Client(), key.trim(), region);
 });
 
-/// 항상 프록시 서버를 경유하는 AI 서비스.
-/// deviceId 로딩 전(null)이면 null 반환.
-final aiServiceProvider = Provider<IAiService?>((ref) {
-  final deviceId = ref.watch(deviceIdProvider).valueOrNull;
-  if (deviceId == null) return null;
-  final region = ref.watch(regionProvider);
-  return ProxyAiService(http.Client(), region, deviceId);
-});

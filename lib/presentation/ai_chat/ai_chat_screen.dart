@@ -9,6 +9,7 @@ import '../../providers/config_provider.dart';
 import '../../providers/region_provider.dart';
 import '../calculator/calculator_provider.dart';
 import '../calculator/widgets/mic_button.dart';
+import '../common/api_key_dialog.dart';
 
 // --- State ---
 
@@ -201,6 +202,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.key_outlined, size: 22),
+            onPressed: () => showApiKeyDialog(context, ref, s),
+            tooltip: s['api_key_tooltip'] ?? 'API 키 설정',
+          ),
           if (chatState.messages.length > 1)
             IconButton(
               icon: const Icon(Icons.refresh_outlined),
@@ -211,6 +217,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       ),
       body: Column(
         children: [
+          if (!hasKey) _apiKeyBanner(context, s),
           _policyBar(context, s, remaining),
 
           Expanded(
@@ -237,6 +244,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             controller: _controller,
             enabled: hasKey && !chatState.isLoading,
             onSend: _send,
+            onTapDisabled: !hasKey ? () => showApiKeyDialog(context, ref, s) : null,
             hintEnabled: s['chat_input_hint']!,
             hintDisabled: s['set_api_first']!,
             region: ref.watch(regionProvider),
@@ -245,6 +253,52 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       ),
     );
   }
+
+  Widget _apiKeyBanner(BuildContext context, Map<String, String> s) {
+    final region = ref.watch(regionProvider);
+    final isKr = region == RegionMode.kr;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.amber.shade50,
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: Colors.amber),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              isKr
+                  ? 'AI 대화를 시작하려면 Gemini API 키가 필요합니다.'
+                  : 'Gemini API key is required to start AI chat.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.amber.shade900,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => showApiKeyDialog(context, ref, s),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              isKr ? '키 입력' : 'Enter Key',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.amber.shade900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   /// 정책 안내 + 사용량 표시 바 (항상 노출)
   Widget _policyBar(BuildContext context, Map<String, String> s, int remaining) {
@@ -552,6 +606,7 @@ class _ChatInputBar extends StatefulWidget {
   final TextEditingController controller;
   final bool enabled;
   final VoidCallback onSend;
+  final VoidCallback? onTapDisabled;
   final String hintEnabled;
   final String hintDisabled;
   final RegionMode region;
@@ -560,6 +615,7 @@ class _ChatInputBar extends StatefulWidget {
     required this.controller,
     required this.enabled,
     required this.onSend,
+    this.onTapDisabled,
     required this.hintEnabled,
     required this.hintDisabled,
     required this.region,
@@ -588,27 +644,30 @@ class _ChatInputBarState extends State<_ChatInputBar> {
         child: Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: widget.controller,
-                enabled: widget.enabled,
-                onSubmitted: (_) => widget.onSend(),
-                maxLines: null,
-                maxLength: 200,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  hintText: widget.enabled ? widget.hintEnabled : widget.hintDisabled,
-                  hintStyle: const TextStyle(
-                    color: AppColors.expressionText,
-                    fontSize: 14,
+              child: GestureDetector(
+                onTap: !widget.enabled ? widget.onTapDisabled : null,
+                child: TextField(
+                  controller: widget.controller,
+                  enabled: widget.enabled,
+                  onSubmitted: (_) => widget.onSend(),
+                  maxLines: null,
+                  maxLength: 200,
+                  maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                  keyboardType: TextInputType.multiline,
+                  decoration: InputDecoration(
+                    hintText: widget.enabled ? widget.hintEnabled : widget.hintDisabled,
+                    hintStyle: const TextStyle(
+                      color: AppColors.expressionText,
+                      fontSize: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    isDense: true,
+                    counterText: '',
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  isDense: true,
-                  counterText: '',
                 ),
               ),
             ),
@@ -627,7 +686,7 @@ class _ChatInputBarState extends State<_ChatInputBar> {
             const SizedBox(width: 8),
             // Send button
             GestureDetector(
-              onTap: widget.enabled ? widget.onSend : null,
+              onTap: widget.enabled ? widget.onSend : widget.onTapDisabled,
               child: Container(
                 width: 44,
                 height: 44,
@@ -648,3 +707,4 @@ class _ChatInputBarState extends State<_ChatInputBar> {
     );
   }
 }
+

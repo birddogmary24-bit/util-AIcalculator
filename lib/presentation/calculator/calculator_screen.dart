@@ -8,6 +8,7 @@ import '../../core/constants/region.dart';
 import '../../providers/config_provider.dart';
 import '../../providers/region_provider.dart';
 import '../ai_chat/ai_chat_screen.dart';
+import '../common/api_key_dialog.dart';
 import 'calculator_provider.dart';
 import 'widgets/display_panel.dart';
 import 'widgets/button_grid.dart';
@@ -48,53 +49,6 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
   void dispose() {
     _speech.stop();
     super.dispose();
-  }
-
-  void _showApiKeyDialog(BuildContext context, Map<String, String> s) {
-    final controller = TextEditingController(
-      text: ref.read(apiKeyNotifierProvider).valueOrNull ?? '',
-    );
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s['api_key_dialog_title']!),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              s['api_key_dialog_desc']!,
-              style: const TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: 'AIzaSy...',
-                hintText: s['api_key_hint']!,
-              ),
-              obscureText: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s['cancel']!),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final key = controller.text.trim();
-              if (key.isNotEmpty) {
-                await ref.read(apiKeyNotifierProvider.notifier).save(key);
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Text(s['save']!),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showAiChat(BuildContext context) {
@@ -167,7 +121,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             ? [
                 IconButton(
                   icon: const Icon(Icons.key_outlined),
-                  onPressed: () => _showApiKeyDialog(context, s),
+                  onPressed: () => showApiKeyDialog(context, ref, s),
                   tooltip: s['api_key_tooltip']!,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   constraints: const BoxConstraints(),
@@ -196,7 +150,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                 // 모바일: 버튼 간격 최소화, 우측 끝에 딱 붙게
                 IconButton(
                   icon: const Icon(Icons.key_outlined, size: 22),
-                  onPressed: () => _showApiKeyDialog(context, s),
+                  onPressed: () => showApiKeyDialog(context, ref, s),
                   tooltip: s['api_key_tooltip']!,
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   constraints: const BoxConstraints(),
@@ -244,7 +198,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
                         copyLabel: s['copy']!,
                         copiedLabel: s['copied']!,
                         errorLabel: s['calc_error']!,
-                        onMicTap: hasKey ? () => _toggleListening(region) : null,
+                        onMicTap: () => hasKey ? _toggleListening(region) : showApiKeyDialog(context, ref, s),
                         onBackspace: () => ref.read(calculatorProvider.notifier).backspace(),
                         isListening: _isListening,
                         speechAvailable: _speechAvailable,
@@ -261,7 +215,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
               child: ButtonGrid(
-                onAiTap: hasKey ? () => _showAiChat(context) : null,
+                onAiTap: () => _showAiChat(context),
               ),
             ),
           ],

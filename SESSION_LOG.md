@@ -61,6 +61,12 @@
 
 ## 🛠 4. 최근 작업 이력
 
+### [2026-08-17] AI API 연동 안정화 및 모델 고정
+- **Gemini 직접 통신 구조 도입**: 프록시 방식 제거하고 공식 REST API 방식으로 전환하여 안정성 향상 (`GeminiService` 도입)
+- **AI 모델 고정**: 사용자의 요청에 따라 최신 안정화 모델을 가리키는 `gemini-3.1-flash-lite-latest`로 하드코딩 고정
+- **모델 변경 방지 정책 추가**: 소스코드(`gemini_service.dart`) 주석 및 `AGENTS.md` 개발 규칙에 모델 버전 임의 변경 금지 정책 적용
+- **UI 보완**: 키 누락 혹은 에러 발생 시 공통 팝업 및 배너를 통한 안내 강화
+
 ### [2026-08-17] 안드로이드(Android) 릴리즈 APK 패키징 완료
 - **Android SDK & Gradle 8.14 툴체인 구성**:
   - `gradle-wrapper.properties` (Gradle 8.14), `settings.gradle` (AGP 8.11.1), `app/build.gradle` (compileSdk 36) 호환성 설정 완료
