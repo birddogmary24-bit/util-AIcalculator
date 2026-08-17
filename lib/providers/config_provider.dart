@@ -37,7 +37,7 @@ class ApiKeyNotifier extends StateNotifier<AsyncValue<String?>> {
 
   Future<void> delete() async {
     await SecureConfig.deleteApiKey();
-    state = const AsyncValue.data(null);
+    await _load(); // 삭제 후 .env(빌드 환경변수) 키가 있다면 fallback으로 로드
   }
 
   String? get currentKey => state.valueOrNull;
