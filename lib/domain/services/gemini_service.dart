@@ -23,7 +23,7 @@ class NlpCalcResult {
 /// Google Gemini API (gemini-3.7-flash) 직접 호출 서비스
 class GeminiService implements IAiService {
   // WARNING: 사용자가 명시적으로 지정한 모델입니다. 임의로 다른 버전이나 모델로 변경하지 마세요.
-  static const String _model = 'gemini-3.1-flash-lite-latest';
+  static const String _model = 'gemini-3.1-flash-lite';
   static const String _endpoint =
       'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
 
