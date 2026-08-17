@@ -8,7 +8,7 @@ Flutter (iOS + Android + **Web 우선**).
 - Flutter 3.27.x + Dart ^3.6.2
 - Riverpod 2.6.x (StateNotifier — 코드 생성 미사용)
 - go_router 14.8.x (ShellRoute 3탭)
-- Gemini API (gemini-3.1-flash-lite-latest) — AI 기능 전담 (⚠️ 모델 변경 절대 금지)
+- Gemini API (gemini-3.1-flash-lite) — AI 기능 전담 (⚠️ 모델 변경 절대 금지)
 - flutter_secure_storage / SharedPreferences — API 키 보관
 - History & Storage: **Drift SQLite** (로컬 캐시) + **Supabase (supabase_flutter)** (원격 동기화)
 - Hosting: **Vercel** (Flutter Web 자동 빌드 및 프리뷰)

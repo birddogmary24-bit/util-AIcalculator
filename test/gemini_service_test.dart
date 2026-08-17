@@ -11,7 +11,7 @@ void main() {
     test('parseNaturalLanguage 성공적으로 수식과 결과 파싱', () async {
       final mockClient = MockClient((request) async {
         expect(request.url.queryParameters['key'], 'test-api-key');
-        expect(request.url.path, contains('gemini-3.7-flash'));
+        expect(request.url.path, contains('gemini-3.1-flash-lite'));
 
         final responseJson = {
           'candidates': [
