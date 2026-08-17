@@ -18,7 +18,8 @@
 | **Vercel** | `migrate_to_vercel_db` | `prj_...` | [Vercel Project Dashboard](https://vercel.com/birddogmary24-bits-projects/migrate_to_vercel_db) |
 | **Supabase** | `ai-calculator` | `xubpbdfiaolwrjckfltp` | [Supabase Dashboard](https://supabase.com/dashboard/project/xubpbdfiaolwrjckfltp) |
 | **Supabase Org** | `waynepark-personal` | `jtxjearocpjckizjkyxd` | - |
-| **GitHub PR** | `feat: migrate hosting to Vercel and remote database to Supabase` | `#2` | [GitHub PR #2](https://github.com/birddogmary24-bit/util-AIcalculator/pull/2) |
+| **GitHub PR #4** | `feat: add backspace button and overhaul LCD display layout` | `#4 (Merged)` | [GitHub PR #4](https://github.com/birddogmary24-bit/util-AIcalculator/pull/4) |
+| **GitHub PR #2** | `feat: migrate hosting to Vercel and remote database to Supabase` | `#2 (Merged)` | [GitHub PR #2](https://github.com/birddogmary24-bit/util-AIcalculator/pull/2) |
 
 ### 원격 DB 스키마 (Supabase)
 - **`public.calculations`**:
