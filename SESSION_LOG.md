@@ -67,6 +67,13 @@
 - **모델 변경 방지 정책 추가**: 소스코드(`gemini_service.dart`) 주석 및 `AGENTS.md` 개발 규칙에 모델 버전 임의 변경 금지 정책 적용
 - **UI 보완**: 키 누락 혹은 에러 발생 시 공통 팝업 및 배너를 통한 안내 강화
 
+### [2026-08-17] 안드로이드(Android) 릴리즈 APK 패키징 완료
+- **Android SDK & Gradle 8.14 툴체인 구성**:
+  - `gradle-wrapper.properties` (Gradle 8.14), `settings.gradle` (AGP 8.11.1), `app/build.gradle` (compileSdk 36) 호환성 설정 완료
+  - `.env`에 설정된 API 키(`GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) 주입 빌드
+- **생성된 APK 파일 경로**:
+  - `/Users/waynepark/Documents/AI/util-AIcalculator/build/app/outputs/flutter-apk/app-release.apk` (약 65MB)
+
 ### [2026-08-17] 뒤로가기(백스페이스) 버튼 추가 및 LCD 레이아웃 개편
 - **뒤로가기(백스페이스) 계산 엔진 및 상태 연동**:
   - `CalculatorEngine`: `backspace()` 메소드 구현 (한 글자 지우기, 1글자 남았을 때 0으로 리셋, 연산자 직후 누를 시 연산자 취소 및 이전 숫자 복원 등)

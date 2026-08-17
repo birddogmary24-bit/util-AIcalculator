@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.waynepark.util_ai_calculator"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
